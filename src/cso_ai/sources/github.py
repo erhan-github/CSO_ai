@@ -32,6 +32,8 @@ class GitHubSource:
                     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                     "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
                 ),
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9",
             },
         )
 
@@ -56,7 +58,8 @@ class GitHubSource:
                 response.raise_for_status()
                 repos = self._parse_trending(response.text, period)
                 articles.extend(repos)
-            except Exception:
+            except Exception as e:
+                print(f"GitHub fetch error: {e}")
                 continue
 
         # Deduplicate
@@ -73,29 +76,80 @@ class GitHubSource:
         """Parse GitHub trending page."""
         articles = []
 
-        # Extract repo patterns
+        # Find all repo links - pattern: href="/owner/repo"
+        # Exclude special paths like /apps/, /trending/, /explore/, etc.
         repo_pattern = re.compile(
-            r'<h2 class="h3 lh-condensed">\s*<a href="(/[^"]+)"',
-            re.DOTALL,
+            r'href="/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_.-]+)"',
         )
 
+        # Track found repos to avoid duplicates within this parse
+        found_repos = set()
+
+        # Paths to exclude
+        excluded_prefixes = {
+            "apps", "trending", "explore", "topics", "collections",
+            "events", "sponsors", "settings", "features", "security",
+            "enterprise", "team", "pricing", "login", "signup",
+            "about", "contact", "privacy", "terms", "site",
+        }
+
         for match in repo_pattern.finditer(html):
-            path = match.group(1).strip()
-            repo_name = path.strip("/")
-            url = f"https://github.com{path}"
+            owner = match.group(1)
+            repo = match.group(2)
+
+            # Skip excluded prefixes
+            if owner.lower() in excluded_prefixes:
+                continue
+
+            # Skip if owner looks like a special page
+            if owner.startswith("_") or repo.startswith("."):
+                continue
+
+            repo_full = f"{owner}/{repo}"
+
+            # Skip duplicates
+            if repo_full in found_repos:
+                continue
+
+            found_repos.add(repo_full)
+            url = f"https://github.com/{repo_full}"
+
+            # Try to extract description from nearby text
+            desc = self._extract_description(html, repo_full)
 
             articles.append(
                 Article(
-                    id=f"github-{repo_name.replace('/', '-')}",
-                    title=f"📦 {repo_name}",
+                    id=f"github-{owner}-{repo}",
+                    title=f"🔥 {repo_full}",
                     url=url,
                     source=self.name,
+                    description=desc,
                     published_at=datetime.now(timezone.utc),
-                    tags=[f"trending-{period}"],
+                    tags=[f"trending-{period}", "github", "open-source"],
                 )
             )
 
         return articles
+
+    def _extract_description(self, html: str, repo_full: str) -> str | None:
+        """Try to extract repo description from HTML."""
+        # Look for description near the repo link
+        # GitHub often has: <p class="...">description</p>
+        try:
+            # Find the repo in HTML and look for nearby paragraph
+            idx = html.find(repo_full)
+            if idx > 0:
+                # Look in the next 500 chars for a paragraph
+                snippet = html[idx:idx + 500]
+                p_match = re.search(r'<p[^>]*>([^<]{10,200})</p>', snippet)
+                if p_match:
+                    desc = p_match.group(1).strip()
+                    # Clean up HTML entities
+                    desc = desc.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+                    return desc
+        except Exception:
+            pass
+        return None
 
     async def close(self) -> None:
         """Close HTTP client."""
