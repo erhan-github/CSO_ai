@@ -1,28 +1,11 @@
 """
 CSO.ai Storage Layer.
 
-Persistent storage for:
-- Intelligence profiles
-- Articles and content
-- Insights and recommendations
-
-Storage Backends:
-- SQLite (local): For offline/development use
-- Supabase (cloud): For production with tenant isolation
+Simplified storage with local-first architecture.
 """
 
-from cso_ai.storage.database import Database
-from cso_ai.storage.supabase_client import (
-    Article,
-    Insight,
-    SupabaseClient,
-    TenantContext,
-)
+from cso_ai.storage.simple_db import SimplifiedDatabase
 
 __all__ = [
-    "Database",
-    "SupabaseClient",
-    "TenantContext",
-    "Article",
-    "Insight",
+    "SimplifiedDatabase",
 ]

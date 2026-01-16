@@ -7,9 +7,8 @@ Fetches trending repositories from GitHub.
 import re
 from datetime import datetime, timezone
 
-import httpx
-
 from cso_ai.intel.market import Article
+from cso_ai.utils import ResilientHTTPClient
 
 
 class GitHubSource:
@@ -25,17 +24,17 @@ class GitHubSource:
 
     def __init__(self) -> None:
         """Initialize the source."""
-        self.client = httpx.AsyncClient(
-            timeout=30.0,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
-                ),
-                "Accept": "text/html,application/xhtml+xml",
-                "Accept-Language": "en-US,en;q=0.9",
-            },
-        )
+        # Note: ResilientHTTPClient doesn't support custom headers in __init__
+        # We'll pass them in each request
+        self.client = ResilientHTTPClient(timeout=30.0, max_retries=3)
+        self.headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
 
     async def fetch(self, days: int = 7, limit: int = 25) -> list[Article]:
         """
@@ -52,11 +51,11 @@ class GitHubSource:
 
         for period in ["daily", "weekly"]:
             try:
-                response = await self.client.get(
-                    f"{self.TRENDING_URL}?since={period}"
+                html = await self.client.get_text(
+                    f"{self.TRENDING_URL}?since={period}",
+                    headers=self.headers,
                 )
-                response.raise_for_status()
-                repos = self._parse_trending(response.text, period)
+                repos = self._parse_trending(html, period)
                 articles.extend(repos)
             except Exception as e:
                 print(f"GitHub fetch error: {e}")
@@ -150,7 +149,3 @@ class GitHubSource:
         except Exception:
             pass
         return None
-
-    async def close(self) -> None:
-        """Close HTTP client."""
-        await self.client.aclose()

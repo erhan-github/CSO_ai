@@ -6,9 +6,8 @@ Fetches top stories from the HN API.
 
 from datetime import datetime, timezone
 
-import httpx
-
 from cso_ai.intel.market import Article
+from cso_ai.utils import ResilientHTTPClient
 
 
 class HackerNewsSource:
@@ -25,7 +24,7 @@ class HackerNewsSource:
 
     def __init__(self) -> None:
         """Initialize the source."""
-        self.client = httpx.AsyncClient(timeout=30.0)
+        self.client = ResilientHTTPClient(timeout=30.0, max_retries=3)
 
     async def fetch(self, days: int = 7, limit: int = 50) -> list[Article]:
         """
@@ -38,10 +37,8 @@ class HackerNewsSource:
         Returns:
             List of articles
         """
-        # Get top story IDs
-        response = await self.client.get(f"{self.BASE_URL}/topstories.json")
-        response.raise_for_status()
-        story_ids: list[int] = response.json()
+        # Get top story IDs (with retry logic)
+        story_ids: list[int] = await self.client.get_json(f"{self.BASE_URL}/topstories.json")
 
         # Fetch story details
         articles = []
@@ -57,15 +54,14 @@ class HackerNewsSource:
                     else:
                         articles.append(article)
             except Exception:
+                # Skip failed stories, continue with others
                 continue
 
         return articles
 
     async def _fetch_story(self, story_id: int) -> Article | None:
         """Fetch a single story."""
-        response = await self.client.get(f"{self.BASE_URL}/item/{story_id}.json")
-        response.raise_for_status()
-        data = response.json()
+        data = await self.client.get_json(f"{self.BASE_URL}/item/{story_id}.json")
 
         if not data or data.get("type") != "story":
             return None
@@ -85,7 +81,3 @@ class HackerNewsSource:
                 else None
             ),
         )
-
-    async def close(self) -> None:
-        """Close HTTP client."""
-        await self.client.aclose()

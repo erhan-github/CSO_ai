@@ -8,9 +8,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
-import httpx
-
 from cso_ai.intel.market import Article
+from cso_ai.utils import ResilientHTTPClient
 
 
 class LobstersSource:
@@ -26,7 +25,7 @@ class LobstersSource:
 
     def __init__(self) -> None:
         """Initialize the source."""
-        self.client = httpx.AsyncClient(timeout=30.0)
+        self.client = ResilientHTTPClient(timeout=30.0, max_retries=3)
 
     async def fetch(self, days: int = 7, limit: int = 50) -> list[Article]:
         """
@@ -39,10 +38,9 @@ class LobstersSource:
         Returns:
             List of articles
         """
-        response = await self.client.get(self.RSS_URL)
-        response.raise_for_status()
+        xml_content = await self.client.get_text(self.RSS_URL)
 
-        articles = self._parse_rss(response.text)
+        articles = self._parse_rss(xml_content)
 
         # Filter by date
         cutoff = datetime.now(timezone.utc)
@@ -106,7 +104,3 @@ class LobstersSource:
             published_at=published_at,
             tags=tags,
         )
-
-    async def close(self) -> None:
-        """Close HTTP client."""
-        await self.client.aclose()

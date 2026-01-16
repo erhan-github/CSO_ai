@@ -22,7 +22,7 @@ from mcp.types import (
     Tool,
 )
 
-from cso_ai.tools import TOOLS, handle_tool_call
+from cso_ai.tools_refined import TOOLS, handle_tool_call
 
 
 def load_env_file() -> None:
@@ -70,44 +70,23 @@ logger = logging.getLogger("cso-ai")
 # Create MCP server instance
 server = Server("cso-ai")
 
-# Define prompts - natural ways to invoke CSO.ai
+# Define prompts - simplified for 3 core tools
 PROMPTS: list[Prompt] = [
     Prompt(
+        name="read",
+        description="Get top articles for your stack - 'What should I read?'",
+        arguments=[],
+    ),
+    Prompt(
         name="strategy",
-        description="Ask CSO.ai for strategic insights - 'What should be our strategy?'",
+        description="Get strategic advice - 'What should I focus on?'",
         arguments=[
             PromptArgument(
-                name="focus",
-                description="Area to focus on: tech, business, market, growth, risks",
+                name="context",
+                description="Optional context about what you're working on",
                 required=False,
             ),
         ],
-    ),
-    Prompt(
-        name="whats-happening",
-        description="Get market intelligence - 'What's happening in our space?'",
-        arguments=[],
-    ),
-    Prompt(
-        name="analyze",
-        description="Deep codebase analysis - 'CSO, understand our codebase'",
-        arguments=[
-            PromptArgument(
-                name="path",
-                description="Path to analyze (defaults to current directory)",
-                required=False,
-            ),
-        ],
-    ),
-    Prompt(
-        name="risks",
-        description="Risk assessment - 'Any risks I should know about?'",
-        arguments=[],
-    ),
-    Prompt(
-        name="opportunities",
-        description="Opportunity scan - 'What opportunities should we pursue?'",
-        arguments=[],
     ),
 ]
 
@@ -126,66 +105,30 @@ async def list_prompts() -> list[Prompt]:
 
 @server.get_prompt()
 async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptResult:
-    """Handle prompt requests - conversation starters for CSO.ai."""
+    """Handle prompt requests - simplified for 3 core tools."""
     args = arguments or {}
 
     prompt_handlers = {
+        "read": lambda: GetPromptResult(
+            description="Top articles for your stack",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text="CSO, what should I read?",
+                    ),
+                ),
+            ],
+        ),
         "strategy": lambda: GetPromptResult(
-            description=f"Strategic insights focused on {args.get('focus', 'overall strategy')}",
+            description=f"Strategic advice{' for ' + args.get('context') if args.get('context') else ''}",
             messages=[
                 PromptMessage(
                     role="user",
                     content=TextContent(
                         type="text",
-                        text=f"CSO, what should be our strategy? Focus: {args.get('focus', 'general')}",
-                    ),
-                ),
-            ],
-        ),
-        "whats-happening": lambda: GetPromptResult(
-            description="Market and technology intelligence",
-            messages=[
-                PromptMessage(
-                    role="user",
-                    content=TextContent(
-                        type="text",
-                        text="CSO, what's happening in our space that I should know about?",
-                    ),
-                ),
-            ],
-        ),
-        "analyze": lambda: GetPromptResult(
-            description=f"Codebase analysis for {args.get('path', 'current directory')}",
-            messages=[
-                PromptMessage(
-                    role="user",
-                    content=TextContent(
-                        type="text",
-                        text=f"CSO, analyze the codebase at {args.get('path', '.')} and tell me what you understand.",
-                    ),
-                ),
-            ],
-        ),
-        "risks": lambda: GetPromptResult(
-            description="Risk assessment across all domains",
-            messages=[
-                PromptMessage(
-                    role="user",
-                    content=TextContent(
-                        type="text",
-                        text="CSO, what risks should I be aware of? Technical, business, market, legal - all of it.",
-                    ),
-                ),
-            ],
-        ),
-        "opportunities": lambda: GetPromptResult(
-            description="Opportunity identification",
-            messages=[
-                PromptMessage(
-                    role="user",
-                    content=TextContent(
-                        type="text",
-                        text="CSO, what opportunities should we be pursuing right now?",
+                        text=f"CSO, what should I focus on?{' Context: ' + args.get('context') if args.get('context') else ''}",
                     ),
                 ),
             ],
@@ -197,11 +140,11 @@ async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptRe
         return handler()
 
     return GetPromptResult(
-        description="CSO.ai - Your Strategic Advisor",
+        description="CSO.ai - Instant Strategic Intelligence",
         messages=[
             PromptMessage(
                 role="user",
-                content=TextContent(type="text", text="Hey CSO, what should I know?"),
+                content=TextContent(type="text", text="CSO, what should I read?"),
             ),
         ],
     )

@@ -1,24 +1,41 @@
 """
-CSO.ai Technical Intelligence.
+Technical intelligence analyzer for CSO.ai.
 
-Analyzes codebase for:
-- Languages and file distribution
-- Frameworks and dependencies
+Analyzes codebases to understand:
+- Languages and frameworks
 - Architecture patterns
-- Code health signals
-- Git history signals
-- TODOs and FIXMEs
-- Cursor rules
+- Code health
+- Git activity
 """
 
 import re
 import subprocess
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from cso_ai.core.understander import TechnicalIntel
+
+@dataclass
+class TechnicalIntel:
+    """Technical intelligence about a codebase."""
+
+    languages: dict[str, int] = field(default_factory=dict)
+    primary_language: str | None = None
+    dependencies: dict[str, list[str]] = field(default_factory=dict)
+    frameworks: list[str] = field(default_factory=list)
+    architecture_patterns: list[str] = field(default_factory=list)
+    health_signals: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "languages": self.languages,
+            "primary_language": self.primary_language,
+            "dependencies": self.dependencies,
+            "frameworks": self.frameworks,
+            "architecture_patterns": self.architecture_patterns,
+            "health_signals": self.health_signals,
+        }
 
 
 @dataclass
