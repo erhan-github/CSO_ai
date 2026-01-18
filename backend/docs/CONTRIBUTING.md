@@ -10,8 +10,8 @@ Thank you for your interest in contributing to CSO.ai! This guide will help you 
 
 ```bash
 # Fork on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/cso-ai.git
-cd cso-ai
+git clone https://github.com/erhan-github/CSO_ai.git
+cd CSO_ai/backend
 ```
 
 ### 2. Set Up Development Environment

@@ -31,8 +31,8 @@ Unlike standard coding assistants (Cursor, Copilot) which only care about the *c
 ### 1. Install
 
 ```bash
-git clone https://github.com/erhanerdogan/cso-ai.git
-cd cso-ai
+git clone https://github.com/erhan-github/CSO_ai.git
+cd CSO_ai/backend
 uv pip install -e .
 ```
 

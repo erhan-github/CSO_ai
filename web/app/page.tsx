@@ -902,7 +902,7 @@ export default function Home() {
                 <Link href="/pricing" className="hover:text-white">Pricing</Link>
               </div>
               <div className="flex flex-col gap-2">
-                <Link href="https://github.com/erhanerdogan/cso-ai" className="hover:text-white">GitHub</Link>
+                <Link href="https://github.com/erhan-github/CSO_ai" className="hover:text-white">GitHub</Link>
                 <Link href="/privacy" className="hover:text-white">Privacy</Link>
                 <Link href="/terms" className="hover:text-white">Terms</Link>
               </div>
