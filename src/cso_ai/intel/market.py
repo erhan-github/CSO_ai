@@ -10,47 +10,18 @@ Gathers and analyzes market information:
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
 
 
-@dataclass
-class Article:
-    """Represents a piece of content from any source."""
 
-    id: str
-    title: str
-    url: str
-    source: str  # hackernews, lobsters, github, etc.
-    description: str | None = None
-    author: str | None = None
-    score: int | None = None  # Source-specific score (HN points, stars, etc.)
-    published_at: datetime | None = None
-    fetched_at: datetime = field(default_factory=datetime.utcnow)
-    tags: list[str] = field(default_factory=list)
 
-    # Relevance scoring (added later)
-    relevance_score: float | None = None
-    relevance_reason: str | None = None
+from cso_ai.intel.sources.base import IntelligenceItem
 
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize article."""
-        return {
-            "id": self.id,
-            "title": self.title,
-            "url": self.url,
-            "source": self.source,
-            "description": self.description,
-            "author": self.author,
-            "score": self.score,
-            "published_at": self.published_at.isoformat() if self.published_at else None,
-            "fetched_at": self.fetched_at.isoformat(),
-            "tags": self.tags,
-            "relevance_score": self.relevance_score,
-            "relevance_reason": self.relevance_reason,
-        }
+# Compatibility alias for code expecting Article
+Article = IntelligenceItem
 
 
 class MarketAnalyzer:
@@ -78,39 +49,126 @@ class MarketAnalyzer:
             self._strategist = Strategist()
         return self._strategist
 
-    async def fetch_all_sources(self, days: int = 7) -> list[Article]:
+
+    async def fetch_all_sources(
+        self, 
+        days: int = 7, 
+        profile: dict[str, Any] | None = None
+    ) -> list[IntelligenceItem]:
         """
-        Fetch articles from all sources.
+        Fetch items from all sources IN PARALLEL with Domain Filtering.
 
         Args:
             days: Number of days to look back
+            profile: User profile for domain-specific filtering
 
         Returns:
-            List of fetched articles
+            List of IntelligenceItems
         """
+        import asyncio
         from cso_ai.sources import HackerNewsSource, LobstersSource, GitHubSource
+        from cso_ai.intel.sources.legal import LegalHubPlugin
+        from cso_ai.intel.sources.investment import InvestmentHubPlugin
+        from cso_ai.intel.sources.base import IntelligenceItem
 
-        all_articles = []
-
-        # Fetch from each source
-        sources = [
-            ("HackerNews", HackerNewsSource()),
-            ("Lobsters", LobstersSource()),
-            ("GitHub", GitHubSource()),
+        # Initialize Plugins
+        legacy_sources = [
+            ("HackerNews", HackerNewsSource(), "tech"),
+            ("Lobsters", LobstersSource(), "tech"),
+            ("GitHub", GitHubSource(), "tech"),
+        ]
+        
+        plugins = [
+            LegalHubPlugin(),
+            InvestmentHubPlugin(),
         ]
 
-        for name, source in sources:
-            try:
-                articles = await source.fetch(days=days, limit=30)
-                all_articles.extend(articles)
-                await source.close()
-            except Exception as e:
-                # Log but continue with other sources
-                print(f"Error fetching from {name}: {e}")
-                continue
+        # Configure plugins with context
+        domain = None
+        if profile:
+            biz = profile.get("business", {})
+            domain = biz.get("domain")
+            
+        for p in plugins:
+            if hasattr(p, "set_context"):
+                p.set_context(domain)
 
-        self._articles = all_articles
-        return all_articles
+        # 1. Fetch Legacy Sources (Article objects)
+        async def fetch_legacy(name: str, source: Any, domain: str) -> list[IntelligenceItem]:
+            items = []
+            try:
+                articles = await source.fetch(days=days, limit=15)
+                await source.close()
+                # Convert to IntelligenceItem
+                for a in articles:
+                    items.append(IntelligenceItem(
+                        id=a.id,
+                        title=a.title,
+                        url=a.url,
+                        source=a.source,
+                        domain=domain,
+                        description=a.description,
+                        author=a.author,
+                        published_at=a.published_at,
+                        fetched_at=a.fetched_at,
+                        tags=a.tags,
+                        relevance_score=a.relevance_score,
+                        relevance_reason=a.relevance_reason
+                    ))
+            except Exception as e:
+                print(f"Error fetching from {name}: {e}")
+            return items
+
+        # 2. Fetch New Plugins (IntelligenceItem objects)
+        async def fetch_plugin(plugin: Any) -> list[IntelligenceItem]:
+            try:
+                return await plugin.fetch(limit=10)
+            except Exception as e:
+                print(f"Error fetching from plugin {plugin.name}: {e}")
+                return []
+
+        # Execute all fetches
+        tasks = [fetch_legacy(name, src, dom) for name, src, dom in legacy_sources]
+        tasks += [fetch_plugin(p) for p in plugins]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Flatten results
+        all_items: list[IntelligenceItem] = []
+        for result in results:
+            if isinstance(result, list):
+                all_items.extend(result)
+        
+        # Apply "Balanced Diet" Mixing Logic
+        # We want a mix of Tech, Legal, and Investment
+        final_mix = self._apply_diversity_mix(all_items)
+
+        self._articles = final_mix # Store as current cache
+        return final_mix
+
+    def _apply_diversity_mix(self, items: list[IntelligenceItem]) -> list[IntelligenceItem]:
+        """Enforce diversity in results."""
+        tech = [i for i in items if i.domain == "tech"]
+        legal = [i for i in items if i.domain == "legal"]
+        invest = [i for i in items if i.domain == "investment"]
+        
+        # Simple mixing strategy: top N from each category
+        # 15 Tech, 3 Legal, 2 Investment
+        selection = []
+        selection.extend(tech[:15])
+        selection.extend(legal[:3])
+        selection.extend(invest[:2])
+        
+        # Sort by date usually, but here we might want to group or sort by score later
+        # For now, simplistic sort by date if available (normalize to aware UTC)
+        def get_sort_date(item):
+            dt = item.published_at or datetime.min
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+            
+        selection.sort(key=get_sort_date, reverse=True)
+        return selection
 
     async def score_articles(
         self,
@@ -118,28 +176,37 @@ class MarketAnalyzer:
         profile: dict[str, Any],
     ) -> list[Article]:
         """
-        Score articles for relevance against a profile.
-
-        Uses Groq LLM if available, otherwise falls back to heuristics.
-
-        Args:
-            articles: Articles to score
-            profile: Intelligence profile
-
-        Returns:
-            Articles with relevance scores, sorted by relevance
+        Score articles for relevance using [Hyper-Ralph] Batch Scoring.
         """
         strategist = self._get_strategist()
+        if not articles:
+            return []
 
+        # Convert objects to dicts for strategist
+        article_dicts = [
+            {
+                "title": a.title,
+                "url": a.url,
+                "description": a.description
+            } for a in articles
+        ]
+
+        # Batch scoring in chunks of 10
+        import math
+        chunk_size = 10
+        all_scores = []
+        
+        for i in range(0, len(article_dicts), chunk_size):
+            chunk = article_dicts[i:i + chunk_size]
+            scores = await strategist.batch_score_articles(chunk, profile)
+            all_scores.extend(scores)
+
+        # Map scores back to objects
+        score_map = {s["url"]: s for s in all_scores if "url" in s}
         for article in articles:
-            score, reason = await strategist.score_article(
-                title=article.title,
-                url=article.url,
-                description=article.description,
-                profile=profile,
-            )
-            article.relevance_score = score
-            article.relevance_reason = reason
+            s_data = score_map.get(article.url, {})
+            article.relevance_score = float(s_data.get("score", 50))
+            article.relevance_reason = s_data.get("reason", "Heuristic fallback")
 
         # Sort by relevance
         articles.sort(key=lambda a: a.relevance_score or 0, reverse=True)

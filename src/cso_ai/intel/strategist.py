@@ -12,6 +12,7 @@ import os
 from typing import Any
 
 import httpx
+from cso_ai.intel.context_compressor import ContextCompressor
 
 
 class Strategist:
@@ -31,34 +32,47 @@ class Strategist:
     SMART_MODEL = "llama-3.3-70b-versatile"  # 218 tok/s, 110ms TTFT - strategy
     LITE_MODEL = "gemma2-9b-it"              # 814 tok/s, ultra-cheap - fallback
 
-    STRATEGY_PROMPT = """You are CSO.ai, an AI Chief Strategy Officer for a software project.
+    STRATEGY_PROMPT = """You are CSO.ai, a Partner-level CTO specialized in Day-1 Global SaaS Excellence.
+Your objective: Build a $100M+ market-dominant asset with 1/10th the effort, using maximum scalability and a "Smart Vibe Coder" mindset.
 
-## Your Role
-You are a strategic advisor who deeply understands the user's codebase, business, and market. 
-You provide actionable, specific advice - not generic platitudes.
+## Your Lens: Day-1 Dominance
+1. **Never "Just an MVP"**: Everything we ship is "Best in Category" on Day 1.
+2. **Maximum Scalability**: Design for 10M users now, build with 1/10th the code. 
+3. **Elegant Simplicity**: Avoid overengineering, but build the foundation for a global empire.
+4. **Leverage Everything**: Reputable OSS + Best-in-class APIs = Dominance.
 
-## The User's Profile
-{profile}
+## Context
+Profile: {profile}
+Strategic Pivots: {past_decisions}
+$100M Goals: {active_goals}
+Intelligence Feed: {articles}
 
-## Recent Changes (Last 7 Days)
-{recent_changes}
-
-## Recent Relevant Articles
-{articles}
-
-## User's Question
+## User's Strategic Inquiry
 {question}
 
-## Instructions
-1. Answer based on the specific context of their project
-2. Consider recent changes when giving advice - the project state may have evolved
-3. Reference relevant articles when applicable
-4. Be direct and actionable - give 3-5 specific recommendations
-5. Think like a real CSO - what would you actually recommend?
-6. If you don't have enough information, say so
-7. Keep your response focused and under 500 words
+## The "God Mode" Instructions (V3 - Perfection)
+1. **THE PULSE**: You MUST start with a SINGLE SENTENCE breakthrough. 
+   - Use `⚡ [SHORTCUT]` for high-velocity leverage.
+   - Use `🛡️ [MOAT]` for defensive, scalable advantage.
+   - Use `🚀 [EXCELLENCE]` for Day-1 dominance improvements.
+2. **STRATEGIC IQ**: Assessment of current maturity (0-160 scale).
+3. **DAY-1 UPGRADE**: Suggest one change that moves the project from "Functional" to "World Class."
+4. **BUILD VS. REUSE**: Identify the exact OSS (e.g. Supabase, Clerk) to kill the grunt work.
+5. **TONE**: Smart, high-velocity, authoritative. We don't build toys; we build empires.
 
-Provide your strategic advice:"""
+## Mandatory Output Format
+⚡ **THE PULSE**: [PREFIX] [Breakthrough sentence]
+
+🧠 **STRATEGIC IQ**: [Score] [Leverage Assessment]
+
+🏗️ **POWER MOVES (Scalability-First)**:
+1. [Move 1]
+2. [Move 2]
+3. [Move 3]
+
+⚖️ **COMPLIANCE & MOAT WARNINGS**: [Forensic alerts]
+
+Provide your Strategy:"""
 
     SCORING_PROMPT = """Rate this article's relevance to the project (0-100).
 
@@ -74,25 +88,56 @@ URL: {url}
 Description: {description}
 
 ## Scoring Criteria
-- 90-100: Directly about current focus area or exact tech stack match
-- 70-89: Related to tech stack or business domain
-- 50-69: Adjacent technology, generally useful
-- 30-49: Tangentially related
-- 0-29: Not relevant
+- 90-100: CRITICAL MATCH. Directly addresses a current "Focus Area" OR is a perfect Domain + Stack match.
+- 70-89: STRONG MATCH. Same Domain (e.g. EdTech) AND Stack, or solves a specific known problem.
+- 50-69: TECH MATCH ONLY. Same stack (e.g. Python/FastAPI) but different domain. Useful but not critical.
+- 30-49: WEAK MATCH. Popular tool but irrelevant domain (e.g. Home Assistant for EdTech).
+- 0-29: Relevance is near zero.
 
-IMPORTANT: Prioritize articles matching "Current Focus Areas" - these are what the developer is actively working on.
+IMPORTANT: 
+- PENALIZE popular but irrelevant tools (e.g. Home Assistant, Stable Diffusion) if they don't match the project's DOMAIN.
+- A Python repo (Home Assistant) is NOT relevant to a Python EdTech app unless the app does automation.
+- Prioritize DOMAIN relevance (EdTech, LMS, Learning) over generic Language relevance.
 
 Respond with ONLY valid JSON:
 {{"score": <number>, "reason": "<brief reason>"}}"""
 
+
+
     def __init__(self) -> None:
         """Initialize the Strategist."""
         self._api_key = os.environ.get("GROQ_API_KEY")
+        self.compressor = ContextCompressor()
 
     @property
     def is_available(self) -> bool:
         """Check if LLM is available."""
         return self._api_key is not None
+
+    def _detect_adversarial_intent(self, text: str) -> bool:
+        """
+        Detect potential prompt injection or adversarial intent.
+        
+        This is the CTO-level 'Forensics Layer'.
+        """
+        lower_text = text.lower()
+        adversarial_patterns = [
+            "ignore previous instructions",
+            "ignore all instructions",
+            "system prompt",
+            "you are now",
+            "dan mode",
+            "jailbreak",
+            "output the full prompt",
+            "forget what i said",
+            "new rule:",
+            "disregard"
+        ]
+        
+        for pattern in adversarial_patterns:
+            if pattern in lower_text:
+                return True
+        return False
 
     async def _call_groq(
         self,
@@ -105,20 +150,33 @@ Respond with ONLY valid JSON:
         if not self.is_available:
             return None
 
+        if len(prompt) > 40000:
+             logger.warning(f"Extremely large prompt detected ({len(prompt)} chars). Truncating context.")
+             prompt = prompt[:40000] + "\n[CONTEXT TRUNCATED FOR ECONOMY]"
+
+        # [Hyper-Ralph] Scenario 32: Cheapskate Optimizer
+        # Use LITE_MODEL if the prompt is small or the task is repetitive
+        actual_model = model
+        if "rate this article" in prompt.lower() and len(prompt) < 2000:
+             actual_model = self.LITE_MODEL
+             logger.debug(f"Cheapskate Optimizer: Downgrading to {actual_model} for simple scoring.")
+
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
         }
-
+        
         payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
+            "model": actual_model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(
                     self.GROQ_API_URL,
                     headers=headers,
@@ -127,14 +185,8 @@ Respond with ONLY valid JSON:
                 response.raise_for_status()
                 data = response.json()
                 return data["choices"][0]["message"]["content"]
-        except httpx.HTTPStatusError as e:
-            # Try fallback model on error
-            if model != self.LITE_MODEL:
-                return await self._call_groq(prompt, self.LITE_MODEL, max_tokens, temperature)
-            print(f"Groq API error: {e}")
-            return None
         except Exception as e:
-            print(f"Groq API error: {e}")
+            logger.error(f"Groq API error: {e}")
             return None
 
     async def get_strategy(
@@ -161,25 +213,58 @@ Respond with ONLY valid JSON:
         if not self.is_available:
             return self._fallback_strategy(question, profile)
 
+        # Forensics Layer: Check for prompt injection
+        if self._detect_adversarial_intent(question):
+            return "🛡️ **Forensics Alert**: Adversarial intent detected. I am a Strategic Advisor, not a roleplay engine. Please ask a legitimate business or technical question."
+
         # Format profile
         profile_text = self._format_profile(profile)
 
         # Format recent changes
         changes_text = self._format_recent_changes(recent_deltas)
 
-        # Format articles
-        articles_text = "No articles available."
+        # Format articles with Diversity awareness
+        articles_text = "No intelligence available."
         if articles:
-            articles_text = "\n".join([
-                f"- {a.get('title', 'Untitled')}: {a.get('relevance_reason', '')}"
-                for a in articles[:5]
-            ])
+            lines = []
+            for a in articles[:10]: # Process top 10 diverse items
+                domain = a.get("domain", "tech").lower()
+                emoji = "📝"
+                if "legal" in domain: emoji = "⚖️"
+                elif "invest" in domain: emoji = "💰"
+                
+                title = a.get("title", "Untitled")
+                desc = a.get("description", "") or ""
+                lines.append(f"- {emoji} [{domain.upper()}] {title}: {desc[:150]}...")
+            articles_text = "\n".join(lines)
+
+        # Extract domain for strict relevance check
+        # Check root 'domain' first (from Auto-Detection), then fallback to 'business' config
+        domain = profile.get("domain")
+        if not domain:
+            biz = profile.get("business", {})
+            domain = biz.get("domain", "General Software")
+        
+        # [Hyper-Ralph] Scenario 15: Use ContextCompressor to prevent token saturation
+        context = self.compressor.compress(
+            question=question,
+            profile=profile,
+            decisions=profile.get("_decisions", []),
+            goals=profile.get("_active_goals", []),
+            learnings=profile.get("_learnings", []),
+            articles=articles or [],
+            recent_changes=changes_text
+        )
 
         prompt = self.STRATEGY_PROMPT.format(
-            profile=profile_text,
-            recent_changes=changes_text,
-            articles=articles_text,
-            question=question,
+            profile=context["profile"],
+            past_decisions=context["past_decisions"],
+            key_learnings=context["key_learnings"],
+            active_goals=context["active_goals"],
+            recent_changes=context["recent_changes"],
+            articles=context["articles"],
+            question=context["question"],
+            domain=domain,
         )
 
         # Use SMART_MODEL for strategic reasoning
@@ -192,6 +277,52 @@ Respond with ONLY valid JSON:
         if result:
             return result
         return self._fallback_strategy(question, profile)
+
+    async def batch_score_articles(
+        self,
+        articles_data: list[dict[str, Any]],
+        profile: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """
+        [Hyper-Ralph] Scenario 36 Fix: Batch Article Scoring.
+        Processes up to 10 articles in a single request to save tokens and time.
+        """
+        if not articles_data:
+            return []
+
+        # We take only a slice to avoid context overflow
+        batch = articles_data[:10]
+        
+        # Prepare content string
+        articles_str = ""
+        for i, a in enumerate(batch):
+            articles_str += f"\nArticle {i+1}:\nTitle: {a.get('title')}\nURL: {a.get('url')}\nDescription: {a.get('description')}\n"
+
+        prompt = f"""Rate these articles' relevance to the project (0-100).
+        
+        ## Project Profile
+        {self._format_profile(profile)}
+        
+        ## Articles to Score
+        {articles_str}
+        
+        {self.SCORING_PROMPT}"""
+        
+        result = await self._call_groq(prompt, model=self.FAST_MODEL)
+        if not result:
+            return [{"url": a["url"], "score": 50, "reason": "No response"} for a in batch]
+        
+        try:
+            # Extract JSON block
+            import re
+            match = re.search(r"(\[.*\])", result, re.DOTALL)
+            if match:
+                scores = json.loads(match.group(1))
+                return scores
+            return [{"url": a["url"], "score": 50, "reason": "Invalid JSON"} for a in batch]
+        except Exception as e:
+            logger.error(f"Failed to parse batch scores: {e}")
+            return [{"url": a["url"], "score": 40, "reason": "Parse error"} for a in batch]
 
     async def score_article(
         self,
@@ -285,6 +416,17 @@ Respond with ONLY valid JSON:
         if issues.get("total_issues", 0) > 0:
             lines.append(f"Open TODOs: {len(issues.get('todos', []))}")
 
+        # Add project documentation (README/VISION)
+        docs = profile.get("project_docs", "")
+        if docs:
+            lines.append("\n## Project Documentation Context")
+            lines.append(docs)
+
+        # Add Strategic Alignment Note (Stage 2)
+        alignment_note = profile.get("alignment_note")
+        if alignment_note:
+            lines.append(f"\n⚠️ STRATEGIC ALIGNMENT WARNING: {alignment_note}")
+
         return "\n".join(lines) if lines else "General software project"
 
     def _format_focus_areas(self, profile: dict[str, Any]) -> str:
@@ -333,55 +475,56 @@ Respond with ONLY valid JSON:
 
         return "\n".join(lines) if lines else "No significant changes"
 
+    def _format_strategic_context(
+        self, items: list[dict[str, Any]], context_type: str
+    ) -> str:
+        """
+        Format strategic memory with Hyper-Ralph Compression.
+        
+        Optimization: We only send the most recent/relevant items 
+        and summarize them to save tokens.
+        """
+        if not items:
+            return f"No {context_type}s recorded yet."
+        
+        lines = []
+        # Hyper-Ralph: Limit to top 3 instead of 5 if stack is huge
+        limit = 5 if len(items) < 10 else 3
+        
+        for item in items[:limit]:
+            if context_type == "decision":
+                q = item.get("question", "")
+                a = item.get("answer", "")
+                # Truncate long answers
+                if len(a) > 200: a = a[:200] + "..."
+                lines.append(f"- **{q}** → {a}")
+            elif context_type == "learning":
+                insight = item.get("insight", "")
+                impact = item.get("impact", "medium")
+                if len(insight) > 200: insight = insight[:200] + "..."
+                emoji = "🔴" if impact == "high" else "🟡" if impact == "medium" else "🟢"
+                lines.append(f"- {emoji} {insight}")
+            elif context_type == "goal":
+                title = item.get("title", "")
+                ptype = item.get("type", "goal")
+                lines.append(f"- [{ptype.upper()}] {title}")
+        
+        return "\n".join(lines)
+
     def _fallback_strategy(
         self,
         question: str,
         profile: dict[str, Any],
     ) -> str:
-        """Provide fallback strategy without LLM."""
-        biz = profile.get("business", {})
-        stage = biz.get("stage", "unknown")
+        """Provide fallback strategy for Day-1 Excellence."""
+        return """I need more context to execute Day-1 Global Dominance.
+        
+To activate the 'Smart Vibe Coder' Engine:
+1. Run `analyze_codebase` to map your scalability surface.
+2. Set GROQ_API_KEY (console.groq.com).
+3. Run `refresh` for real-time market signals.
 
-        advice_by_stage = {
-            "mvp": """Based on your MVP stage:
-
-1. **Focus on validation** - Don't build more until you've validated core assumptions
-2. **Talk to users** - 10+ conversations this week
-3. **Measure one thing** - Pick your North Star metric
-4. **Ship fast** - Speed of learning > perfection
-
-💡 Set GROQ_API_KEY for personalized strategic advice.
-   Free at: https://console.groq.com/keys""",
-
-            "early": """Based on your early stage:
-
-1. **Find PMF** - Product-market fit is everything
-2. **Retention > Acquisition** - Keep users before getting more
-3. **Double down on what works** - Kill what doesn't
-4. **Start thinking about revenue** - Even $1 proves value
-
-💡 Set GROQ_API_KEY for personalized strategic advice.
-   Free at: https://console.groq.com/keys""",
-
-            "growth": """Based on your growth stage:
-
-1. **Scale systematically** - Document what works
-2. **Invest in infrastructure** - Monitoring, observability
-3. **Build the team** - You can't do it alone
-4. **Watch unit economics** - Growth should be efficient
-
-💡 Set GROQ_API_KEY for personalized strategic advice.
-   Free at: https://console.groq.com/keys""",
-        }
-
-        return advice_by_stage.get(stage, """I need more context to provide strategic advice.
-
-To enable full strategic intelligence:
-1. Run `analyze_codebase` on your project
-2. Set GROQ_API_KEY (free at console.groq.com)
-3. Run `refresh` to gather market intelligence
-
-Then ask me again!""")
+We don't build MVPs; we build the future. Ask me again!"""
 
     def _heuristic_score(
         self,
@@ -410,7 +553,7 @@ Then ask me again!""")
         # Check for stack matches
         lang = tech.get("primary_language", "").lower()
         if lang and lang in text:
-            score += 20
+            score += 15  # Reduced from 20 - Language alone isn't enough
             reasons.append(f"mentions {lang}")
 
         frameworks = tech.get("frameworks", [])
@@ -420,14 +563,14 @@ Then ask me again!""")
                 reasons.append(f"about {fw}")
                 break
 
-        # Domain match
+        # Domain match - HIGHER PRIORITY
         biz = profile.get("business", {})
         domain = biz.get("domain", "").lower()
         if domain:
             domain_words = domain.replace("/", " ").replace("-", " ").split()
             for word in domain_words:
                 if len(word) > 3 and word in text:
-                    score += 15
+                    score += 35  # Increased from 15 - Domain is critical
                     reasons.append(f"relevant to {domain}")
                     break
 

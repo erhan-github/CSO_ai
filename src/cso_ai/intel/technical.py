@@ -1,19 +1,45 @@
 """
-Technical intelligence analyzer for CSO.ai.
+Technical intelligence analyzer for sideMCP.
 
 Analyzes codebases to understand:
 - Languages and frameworks
-- Architecture patterns
-- Code health
+- Architecture patterns (via AST)
+- Code health (Complexity, Graphs)
 - Git activity
 """
 
+import ast
 import re
 import subprocess
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from abc import ABC, abstractmethod
+from cso_ai.logging_config import get_logger
+
+try:
+    from tree_sitter_languages import get_language, get_parser
+    TREE_SITTER_AVAILABLE = True
+except ImportError:
+    TREE_SITTER_AVAILABLE = False
+
+logger = get_logger(__name__)
+
+
+@dataclass
+class CodeNode:
+    """A node in the code graph (Class, Function, or Module)."""
+    name: str
+    type: str  # 'class', 'function', 'module'
+    file_path: str
+    start_line: int
+    end_line: int
+    complexity: int = 1
+    docstring: bool = False
+    dependencies: list[str] = field(default_factory=list)  # Imports or interactions
+    definitions: list[str] = field(default_factory=list)   # Names defined here
 
 
 @dataclass
@@ -24,7 +50,7 @@ class TechnicalIntel:
     primary_language: str | None = None
     dependencies: dict[str, list[str]] = field(default_factory=dict)
     frameworks: list[str] = field(default_factory=list)
-    architecture_patterns: list[str] = field(default_factory=list)
+    code_graph: dict[str, CodeNode] = field(default_factory=dict) # True AST Graph
     health_signals: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,7 +59,7 @@ class TechnicalIntel:
             "primary_language": self.primary_language,
             "dependencies": self.dependencies,
             "frameworks": self.frameworks,
-            "architecture_patterns": self.architecture_patterns,
+            "code_graph_size": len(self.code_graph),
             "health_signals": self.health_signals,
         }
 
@@ -52,19 +78,21 @@ class GitSignals:
     recent_commit_messages: list[str] = field(default_factory=list)  # Last 10 commits
     recent_changed_files: list[str] = field(default_factory=list)  # Recently modified
     current_focus_areas: list[str] = field(default_factory=list)  # Inferred from commits
+    is_summarized: bool = False # [Hyper-Ralph] Scenario 33: Huge repo signal
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "is_git_repo": self.is_git_repo,
             "total_commits": self.total_commits,
             "recent_commits": self.recent_commits,
-            "contributors": self.contributors,
-            "active_branches": self.active_branches,
+            "contributors": self.contributors[:5], # Limit to save space
+            "active_branches": self.active_branches[:3],
             "last_commit_date": self.last_commit_date,
             "commit_frequency": self.commit_frequency,
-            "recent_commit_messages": self.recent_commit_messages,
-            "recent_changed_files": self.recent_changed_files,
+            "recent_commit_messages": self.recent_commit_messages[:5],
+            "recent_changed_files": self.recent_changed_files[:5],
             "current_focus_areas": self.current_focus_areas,
+            "is_summarized": self.is_summarized
         }
 
 
@@ -86,6 +114,152 @@ class CodeIssues:
         }
 
 
+class BaseParser(ABC):
+    """Abstract base parser for code analysis."""
+    
+    @abstractmethod
+    def parse_file(self, content: str, rel_path: str) -> list[CodeNode]:
+        pass
+
+
+class PythonParser(BaseParser):
+    """Parser for Python using native AST module."""
+
+    def parse_file(self, content: str, rel_path: str) -> list[CodeNode]:
+        try:
+            tree = ast.parse(content)
+        except SyntaxError:
+            return []
+            
+        nodes = []
+        imports = []
+
+        # 1. First pass: Collect imports
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for name in node.names:
+                    imports.append(name.name)
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    imports.append(node.module)
+
+        # 2. Second pass: Collect Definitions (Classes/Functions)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                nodes.append(CodeNode(
+                    name=node.name,
+                    type="class",
+                    file_path=rel_path,
+                    start_line=node.lineno,
+                    end_line=node.end_lineno or node.lineno,
+                    complexity=len(node.body), 
+                    docstring=ast.get_docstring(node) is not None,
+                    dependencies=imports, 
+                    definitions=[n.name for n in node.body if isinstance(n, ast.FunctionDef)]
+                ))
+            elif isinstance(node, ast.FunctionDef):
+                nodes.append(CodeNode(
+                    name=node.name,
+                    type="function",
+                    file_path=rel_path,
+                    start_line=node.lineno,
+                    end_line=node.end_lineno or node.lineno,
+                    complexity=len(node.body),
+                    docstring=ast.get_docstring(node) is not None,
+                    dependencies=[], 
+                    definitions=[]
+                ))
+        
+        return nodes
+
+
+class TreeSitterParser(BaseParser):
+    """Parser using Tree-Sitter for Polyglot AST (TS, Rust, Go)."""
+
+    # Node type mappings for different languages
+    QUERIES = {
+        "typescript": """
+            (class_declaration name: (type_identifier) @name) @class
+            (interface_declaration name: (type_identifier) @name) @interface
+            (function_declaration name: (identifier) @name) @function
+            (method_definition name: (property_identifier) @name) @method
+        """,
+        "rust": """
+            (struct_item name: (type_identifier) @name) @struct
+            (impl_item type: (type_identifier) @name) @impl
+            (function_item name: (identifier) @name) @function
+        """,
+        "go": """
+            (type_spec name: (type_identifier) @name) @struct
+            (function_declaration name: (identifier) @name) @function
+            (method_declaration name: (field_identifier) @name) @method
+        """
+    }
+
+    def __init__(self, language_name: str):
+        if not TREE_SITTER_AVAILABLE:
+            raise ImportError("tree-sitter-languages not installed")
+        self.language_name = language_name
+        self.language = get_language(language_name)
+        self.parser = get_parser(language_name)
+
+    def parse_file(self, content: str, rel_path: str) -> list[CodeNode]:
+        tree = self.parser.parse(bytes(content, "utf8"))
+        root_node = tree.root_node
+        nodes = []
+        
+        # Recursive traversal to find definitions
+        self._traverse(root_node, nodes, rel_path)
+        return nodes
+
+    def _traverse(self, node: Any, nodes: list[CodeNode], rel_path: str):
+        # Generic mapping logic
+        node_type = node.type
+        
+        # TypeScript / JavaScript
+        if node_type in ["class_declaration", "interface_declaration", "struct_item", "type_spec"]:
+            name = self._get_name(node)
+            if name:
+                nodes.append(CodeNode(
+                    name=name,
+                    type="class", # Generalized
+                    file_path=rel_path,
+                    start_line=node.start_point[0] + 1,
+                    end_line=node.end_point[0] + 1,
+                    complexity=node.child_count,
+                    docstring=False
+                ))
+        
+        elif node_type in ["function_declaration", "function_item", "method_definition", "method_declaration"]:
+            name = self._get_name(node)
+            if name:
+                 nodes.append(CodeNode(
+                    name=name,
+                    type="function",
+                    file_path=rel_path,
+                    start_line=node.start_point[0] + 1,
+                    end_line=node.end_point[0] + 1,
+                    complexity=node.child_count,
+                    docstring=False
+                ))
+
+        for child in node.children:
+            self._traverse(child, nodes, rel_path)
+
+    def _get_name(self, node: Any) -> str | None:
+        # Try to find 'name' field
+        name_node = node.child_by_field_name("name")
+        if name_node:
+            return name_node.text.decode("utf8")
+        
+        # Fallback: look for identifier child
+        for i in range(node.child_count):
+            child = node.children[i]
+            if "identifier" in child.type:
+                return child.text.decode("utf8")
+        return None
+
+
 class TechnicalAnalyzer:
     """
     Analyzes technical aspects of a codebase.
@@ -93,10 +267,9 @@ class TechnicalAnalyzer:
     Provides deep understanding of:
     - Languages used and distribution
     - Frameworks and libraries
-    - Architecture patterns
+    - True AST Graph (Python)
     - Code health signals
     - Git history
-    - Code issues (TODOs, FIXMEs)
     """
 
     # Language detection by extension
@@ -170,55 +343,129 @@ class TechnicalAnalyzer:
         ".c", ".m", ".scala", ".ex", ".exs", ".dart", ".vue", ".svelte",
     }
 
+    # Mapping extensions to Tree-Sitter languages
+    # Note: Python handled by native parser for speed/deps independence if needed, 
+    # but could switch to tree-sitter too. keeping native for now as it's built-in.
+    EXTENSION_TO_LANG: dict[str, str] = {
+        ".py": "python",
+        ".ts": "typescript",
+        ".tsx": "tsx",
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".rs": "rust",
+        ".go": "go",
+    }
+
     def __init__(self) -> None:
         """Initialize the analyzer."""
-        pass
+        self._parsers: dict[str, BaseParser] = {}
+        # Pre-initialize Python parser
+        self._parsers["python"] = PythonParser()
+
+    def _get_parser(self, file_path: Path) -> BaseParser | None:
+        """Get appropriate parser for the file."""
+        ext = file_path.suffix.lower()
+        lang = self.EXTENSION_TO_LANG.get(ext)
+        if not lang:
+            return None
+            
+        # Use native Python parser
+        if lang == "python":
+            return self._parsers["python"]
+            
+        # Use Tree-Sitter for others
+        if not TREE_SITTER_AVAILABLE:
+            return None
+            
+        if lang not in self._parsers:
+            try:
+                self._parsers[lang] = TreeSitterParser(lang)
+            except Exception as e:
+                logger.debug(f"Failed to init TreeSitter parser for {lang}: {e}")
+                self._parsers[lang] = None # Prevent retry
+                return None
+                
+        return self._parsers.get(lang)
 
     async def analyze(self, path: str | Path) -> TechnicalIntel:
         """
-        Perform full technical analysis on a codebase.
-
-        Args:
-            path: Root path of the codebase
-
-        Returns:
-            TechnicalIntel with all findings
+        Analyze a codebase for technical intelligence.
+        
+        [Hyper-Ralph] Scenario 33: Added 'Huge Repo' protection.
+        If a repo has >5000 files, we switch to shallow analysis mode.
         """
         root = Path(path).resolve()
         intel = TechnicalIntel()
 
-        # Analyze different aspects
-        intel.languages = await self._detect_languages(root)
+        # Handle empty repo quickly
+        try:
+            if not any(root.iterdir()):
+                 intel.health_signals["status"] = "EMPTY_REPO"
+                 return intel
+        except (PermissionError, OSError):
+             intel.health_signals["status"] = "INACCESSIBLE"
+             return intel
+
+        # Pre-check repo size
+        all_files = self._walk_files(root)
+        is_huge = len(all_files) > 5000
+        
+        if is_huge:
+             logger.warning(f"Project at {path} is HUGE ({len(all_files)} files). Engaging Shallow Analysis Mode.")
+             intel.health_signals["analysis_depth"] = "shallow"
+             # Filter to only analyze 'important' looking files or top-level ones
+             all_files = [f for f in all_files if len(f.parts) <= len(root.parts) + 3] # Limit depth to 3
+             all_files = all_files[:1000] # Hard cap
+
+        # Analyze aspect
+        intel.languages = await self._detect_languages_with_files(all_files)
         intel.primary_language = self._get_primary_language(intel.languages)
         intel.dependencies = await self._parse_dependencies(root)
         intel.frameworks = self._detect_frameworks(intel.dependencies)
-        intel.architecture_patterns = await self._detect_architecture(root)
         intel.health_signals = await self._analyze_health(root)
 
-        # Phase 3: Enhanced analysis
+        # 🚀 POLYGLOT AST ANALYSIS
+        # We recursively scan files to build the Code Graph using appropriate parsers
+        analyzable_files = [f for f in all_files if f.suffix in self.EXTENSION_TO_LANG]
+        
+        # Cap analysis for speed (per language group or total?)
+        # Let's cap total AST processing to 300 files to remain snappy
+        for source_file in analyzable_files[:300]:
+             try:
+                 parser = self._get_parser(source_file)
+                 if parser:
+                     content = source_file.read_text(encoding="utf-8", errors="replace")
+                     rel_path = str(source_file.relative_to(root))
+                     nodes = parser.parse_file(content, rel_path)
+                     for node in nodes:
+                         intel.code_graph[f"{node.file_path}:{node.name}"] = node
+             except Exception as e:
+                 logger.debug(f"AST Error in {source_file}: {e}")
+
+        # Git analysis (handles huge history internally)
         git_signals = await self._analyze_git(root)
         intel.health_signals["git"] = git_signals.to_dict()
+        
+        if not git_signals.is_git_repo:
+             intel.health_signals["git_status"] = "NOT_A_REPO"
 
-        code_issues = await self._extract_code_issues(root)
+        code_issues = await self._extract_code_issues_from_files(all_files)
         intel.health_signals["code_issues"] = code_issues.to_dict()
-
-        cursor_rules = await self._parse_cursor_rules(root)
-        if cursor_rules:
-            intel.health_signals["cursor_rules"] = cursor_rules
 
         return intel
 
     async def _detect_languages(self, root: Path) -> dict[str, int]:
         """Count files by programming language."""
-        counts: dict[str, int] = {}
+        return await self._detect_languages_with_files(self._walk_files(root))
 
-        for file_path in self._walk_files(root):
+    async def _detect_languages_with_files(self, files: list[Path]) -> dict[str, int]:
+        """Count provided files by programming language."""
+        counts: dict[str, int] = {}
+        for file_path in files:
             ext = file_path.suffix.lower()
             if ext in self.LANGUAGE_MAP:
                 lang = self.LANGUAGE_MAP[ext]
                 counts[lang] = counts.get(lang, 0) + 1
-
-        # Sort by count descending
         return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
 
     def _get_primary_language(self, languages: dict[str, int]) -> str | None:
@@ -395,32 +642,6 @@ class TechnicalAnalyzer:
                     break
 
         return detected
-
-    async def _detect_architecture(self, root: Path) -> list[str]:
-        """Detect architecture patterns."""
-        patterns = []
-
-        # Check for common patterns
-        if (root / "src").is_dir():
-            patterns.append("src-based structure")
-        if (root / "app").is_dir():
-            patterns.append("app directory")
-        if (root / "api").is_dir() or (root / "src" / "api").is_dir():
-            patterns.append("API layer")
-        if (root / "components").is_dir() or (root / "src" / "components").is_dir():
-            patterns.append("component-based")
-        if (root / "tests").is_dir() or (root / "test").is_dir():
-            patterns.append("tests present")
-        if (root / "lib").is_dir() or (root / "libs").is_dir():
-            patterns.append("library structure")
-        if (root / "packages").is_dir():
-            patterns.append("monorepo")
-        if (root / "docker-compose.yml").exists() or (root / "docker-compose.yaml").exists():
-            patterns.append("docker-compose")
-        if (root / "Dockerfile").exists():
-            patterns.append("dockerized")
-
-        return patterns
 
     async def _analyze_health(self, root: Path) -> dict[str, Any]:
         """Analyze code health signals."""
@@ -610,21 +831,24 @@ class TechnicalAnalyzer:
         return list(focus_areas)[:5]  # Return top 5 focus areas
 
     async def _extract_code_issues(self, root: Path) -> CodeIssues:
-        """Extract TODOs, FIXMEs, and HACKs from code."""
+        """Extract TODOs, FIXMEs, and HACKs from the codebase."""
+        return await self._extract_code_issues_from_files(self._walk_files(root))
+
+    async def _extract_code_issues_from_files(self, files: list[Path]) -> CodeIssues:
+        """Extract issues from a specific list of files."""
         issues = CodeIssues()
+        todo_pattern = re.compile(r"TODO[:\s]+(.*)|//\s*TODO\s*(.*)", re.IGNORECASE)
+        fixme_pattern = re.compile(r"FIXME[:\s]+(.*)|//\s*FIXME\s*(.*)", re.IGNORECASE)
+        hack_pattern = re.compile(r"HACK[:\s]+(.*)|//\s*HACK\s*(.*)", re.IGNORECASE)
 
-        todo_pattern = re.compile(r"#\s*TODO[:\s]*(.*)|//\s*TODO[:\s]*(.*)", re.IGNORECASE)
-        fixme_pattern = re.compile(r"#\s*FIXME[:\s]*(.*)|//\s*FIXME[:\s]*(.*)", re.IGNORECASE)
-        hack_pattern = re.compile(r"#\s*HACK[:\s]*(.*)|//\s*HACK[:\s]*(.*)", re.IGNORECASE)
-
-        for file_path in self._walk_files(root):
-            if file_path.suffix.lower() not in self.CODE_EXTENSIONS:
+        for file_path in files[:500]:  # Safety cap for issue extraction
+            if file_path.suffix not in self.CODE_EXTENSIONS:
                 continue
-
+                
             try:
-                content = file_path.read_text(encoding="utf-8", errors="ignore")
-                rel_path = str(file_path.relative_to(root))
-
+                content = file_path.read_text(encoding="utf-8")
+                rel_path = str(file_path)
+                
                 for line_num, line in enumerate(content.splitlines(), 1):
                     # TODOs
                     match = todo_pattern.search(line)
@@ -661,6 +885,7 @@ class TechnicalAnalyzer:
 
         issues.total_issues = len(issues.todos) + len(issues.fixmes) + len(issues.hacks)
         return issues
+
 
     async def _parse_cursor_rules(self, root: Path) -> dict[str, Any] | None:
         """Parse .cursorrules or cursor rules file."""
@@ -704,14 +929,40 @@ class TechnicalAnalyzer:
         return None
 
     def _walk_files(self, root: Path) -> list[Path]:
-        """Walk files, skipping ignored directories."""
+        """
+        Walk files, skipping ignored directories.
+        
+        [Hyper-Ralph] Scenario 3 Fix: Added symlink loop prevention and 
+        depth limiting to prevent hangs in 10GB monoliths.
+        """
         files = []
+        visited = set()
+        max_depth = 20 # Protect against deep recursion
 
         def should_skip(path: Path) -> bool:
             return any(part in self.SKIP_DIRS for part in path.parts)
 
-        for path in root.rglob("*"):
-            if path.is_file() and not should_skip(path):
-                files.append(path)
+        def walk(current_path: Path, depth: int):
+            if depth > max_depth:
+                return
+            
+            try:
+                # Realpath check to prevent symlink loops
+                real_path = current_path.resolve()
+                if real_path in visited:
+                    return
+                visited.add(real_path)
 
+                for path in current_path.iterdir():
+                    if should_skip(path):
+                        continue
+                    
+                    if path.is_file():
+                        files.append(path)
+                    elif path.is_dir():
+                        walk(path, depth + 1)
+            except (PermissionError, OSError):
+                pass
+
+        walk(root, 0)
         return files
