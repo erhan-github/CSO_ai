@@ -1,0 +1,25 @@
+{
+    "name": "side-mcp",
+    "version": "1.0.0",
+    "description": "Your AI Chief Strategy Officer - One Click Installer",
+    "bin": {
+        "side-mcp": "./index.js"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "mcp",
+        "ai",
+        "strategy",
+        "cursor"
+    ],
+    "author": "sideMCP Team",
+    "license": "MIT",
+    "dependencies": {
+        "inquirer": "^9.2.12",
+        "chalk": "^4.1.2",
+        "ora": "^5.4.1",
+        "fs-extra": "^11.2.0"
+    }
+}
