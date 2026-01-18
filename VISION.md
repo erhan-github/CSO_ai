@@ -108,6 +108,12 @@ But they're too busy building to do this well.
 - Regulatory compliance
 - IP considerations
 
+### Documentation Intelligence (The "Truth Hierarchy")
+- **Foundational Truth** (README, ARCHITECTURE): Trusted for months.
+- **Strategic Truth** (VISION): Trusted for weeks.
+- **Volatile Truth** (Roadmaps, TODOs): Trusted for days.
+- **Active Gardening**: Proactively identifies stale documentation and pushes you to keep it aligned with reality ("Your roadmap is writing checks your git history can't cash").
+
 ## How CSO.ai Thinks
 
 ```
@@ -148,42 +154,29 @@ But they're too busy building to do this well.
 - "Competitor X just raised $10M and is hiring aggressively"
 - "Based on your commit patterns, you might want to consider a refactor"
 
-## Roadmap
+## 🛣️ Implementation Roadmap
 
-### Phase 1: Foundation ✅
-- MCP server infrastructure
-- Basic tool interface
-- Ping/status capability
+### Phase 1: Foundation (Current)
+- **Local-First Shell**: SQLite storage with MCP protocol.
+- **Nervous System**: File watcher and context tracking.
 
-### Phase 2: Technical Intelligence
-- Deep codebase analysis
-- Language/framework detection
-- Dependency mapping
-- Architecture inference
+### Phase 2: Intelligence & Sync
+- **Strategic Guard**: Conflict detection for architectural drift.
+- **Supabase Bridge**: Real-time dashboard sync and token monetization.
+- **Market Intel**: Global feed ingestion for article scoring.
 
-### Phase 3: Business Intelligence
-- Stage detection
-- Business model inference
-- Priority extraction
-- Integration mapping
+---
 
-### Phase 4: Document Intelligence
-- README understanding
-- Documentation parsing
-- Meeting notes (future)
-- Pitch deck analysis (future)
+## 🔐 Privacy & Trust
+CSO.ai operates on a **Zero-Knowledge Architecture** for your code.
+- **Code Indexing**: Stays 100% local.
+- **Strategic Logic**: Runs locally on your machine.
+- **Sync**: Only anonymized metadata (project_hash, decision_id) is synced to the cloud.
 
-### Phase 5: Market Intelligence
-- News aggregation
-- Relevance scoring
-- Competitor tracking (future)
-- Trend detection
+---
 
-### Phase 6: Proactive Advisor
-- Pattern matching engine
-- Risk detection
-- Opportunity surfacing
-- Continuous monitoring
+## 🚀 The Future
+We are building the first **Recursive Strategy Engine**—an AI that doesn't just write code, but predicts the market viability of every line you commit.
 
 ## Success Metrics
 
