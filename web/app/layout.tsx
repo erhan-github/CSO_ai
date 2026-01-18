@@ -13,10 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CSO.ai | Your Strategic Partner.",
+  title: "Side | Your Strategic Partner.",
   description: "Upgrade your IDE from a code editor to a Strategic Partner. Native support for Cursor, Windsurf, Claude, and VS Code.",
   keywords: ["AI strategist", "strategic decisions", "codebase health", "MCP", "Cursor", "developer tools", "technical debt", "architecture", "CTO"],
-  authors: [{ name: "CSO.ai" }],
+  authors: [{ name: "Side" }],
   openGraph: {
     title: "CSO.ai | Your CTO on call. 24/7.",
     description: "Cursor writes code. CSO.ai makes sure you're not wasting months building the wrong thing.",

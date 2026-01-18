@@ -6,14 +6,14 @@
 
 [![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen)]() [![Strategic IQ](https://img.shields.io/badge/Strategic%20IQ-127%2F160-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
 
-## What is CSO.ai?
-**CSO.ai is a strategic intelligence layer for your IDE.** It watches your codebase, remembers every decision you've ever made, and alerts you before you ship technical debt.
+## What is Side?
+**Side is a strategic intelligence layer for your IDE.** It watches your codebase, remembers every decision you've ever made, and alerts you before you ship technical debt.
 
-Unlike standard coding assistants (Cursor, Copilot) which only care about the *current tab*, CSO.ai cares about the *project lifecycle*.
+Unlike standard coding assistants (Cursor, Copilot) which only care about the *current tab*, Side cares about the *project lifecycle*.
 
-## Why CSO.ai?
+## Why Side?
 
-| | CSO.ai | Cursor | Copilot | ChatGPT |
+| | Side | Cursor | Copilot | ChatGPT |
 |---|---|---|---|---|
 | **Memory** | **Project Lifecycle** | Session Window | Session Window | None |
 | **Detects technical debt** | ✓ Real-time | ✗ | ✗ | ✗ |
@@ -31,8 +31,8 @@ Unlike standard coding assistants (Cursor, Copilot) which only care about the *c
 ### 1. Install
 
 ```bash
-git clone https://github.com/erhan-github/Side.git
-cd Side/backend
+git clone https://github.com/erhan-github/side.git
+cd side/backend
 uv pip install -e .
 ```
 
@@ -139,4 +139,4 @@ Response:
 MIT
 
 ---
-*CSO.ai - The Strategic Partner that thinks for you.*
+*Side - The Strategic Partner that thinks for you.*
