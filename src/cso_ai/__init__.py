@@ -1,9 +1,9 @@
 """
-CSO.ai - Your AI Chief Strategy Officer
+sideMCP - Your Strategic Sidecar
 
 Strategic intelligence that understands your codebase, business, and market
 without being asked.
 """
 
 __version__ = "0.1.0"
-__author__ = "CSO.ai Team"
+__author__ = "sideMCP Team"
