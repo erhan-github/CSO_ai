@@ -55,6 +55,12 @@ htmlcov/
 .env
 .env.local
 
+# Side Agent
+.side-id
+.side/
+../.side-id
+../.side/
+
 # OS
 .DS_Store
 Thumbs.db

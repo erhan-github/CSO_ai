@@ -1,0 +1,16 @@
+{
+  "name": "@side-ai/mcp",
+  "version": "1.0.0",
+  "description": "Side MCP - The Strategic Partner that thinks for you",
+  "main": "index.js",
+  "bin": {
+    "side-mcp": "./bin/side-mcp.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["mcp", "side", "ai", "cursor", "code-review", "audit"],
+  "author": "Side AI",
+  "license": "MIT",
+  "dependencies": {}
+}
