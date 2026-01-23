@@ -29,7 +29,7 @@ class DomainDetector:
         "FinTech": [
             "money", "payment", "crypto", "wallet", "bank", "finance", "tax", 
             "trading", "stock", "invest", "ledger", "transaction", "currency", 
-            "defi", "blockchain", "stripe", "plaid"
+            "defi", "blockchain", "lemonsqueezy", "plaid"
         ],
         "Health": [
             "patient", "doctor", "medical", "hipaa", "clinic", "health", "fitness", 
@@ -39,7 +39,7 @@ class DomainDetector:
         "E-commerce": [
             "shop", "cart", "checkout", "product", "sku", "inventory", "order", 
             "store", "merchant", "payment", "shipping", "fulfillment", "marketplace",
-            "shopify", "stripe"
+            "shopify", "lemonsqueezy"
         ],
         "SaaS": [
             "subscription", "billing", "saas", "b2b", "enterprise", "dashboard", 
@@ -95,7 +95,7 @@ class DomainDetector:
         matches = {}
         
         # Tokenize roughly
-        words = set(re.findall(r'\w+', text))
+        # words = set(re.findall(r'\w+', text)) # Unused
         
         for domain, keywords in self.DOMAINS.items():
             domain_matches = []

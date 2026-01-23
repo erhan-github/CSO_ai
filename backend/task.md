@@ -45,6 +45,15 @@
 - [x] `read` - Curated news
 - [x] `decide` - Strategic decisions
 
+## 🌐 Brand & Domain Correction
+- [x] Update `layout.tsx` metadata and domain links
+- [x] Update `page.tsx` marketing copy (Side AI -> Side)
+- [x] Update legal pages (Privacy, Terms, Security)
+- [x] Update package configs (`mcp-package/package.json`)
+- [x] Update core docs (`VISION.md`, `ARCHITECTURE.md`, etc.)
+- [x] Update terminal headers and logger paths
+- [x] Global search for lingering `side.ai` or `Side AI`
+
 ---
 
 ## Backlog
@@ -53,7 +62,7 @@
 - [ ] Calendar sync (Google Calendar API)
 - [ ] Time tracking per goal
 - [ ] Competitor monitoring
-- [ ] Business metrics integration (Stripe, PostHog)
+- [ ] Business metrics integration (Lemon Squeezy, PostHog)
 
 ### Phase 5: Scale
 - [ ] Multi-project support

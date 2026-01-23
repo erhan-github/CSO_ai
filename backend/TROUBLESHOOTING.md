@@ -1,12 +1,12 @@
-# 🧠 CSO.ai - Troubleshooting Guide
+# 🧠 Sidelith - Troubleshooting Guide
 
-Common issues and solutions for CSO.ai.
+Common issues and solutions for Sidelith.
 
 ---
 
 ## Installation Issues
 
-### "Module not found: cso_ai"
+### "Module not found: side"
 
 **Problem**: Package not installed or wrong Python environment.
 
@@ -18,7 +18,7 @@ uv venv && uv pip install -e .
 
 Verify installation:
 ```bash
-python -c "import cso_ai; print('OK')"
+python -c "import side; print('OK')"
 ```
 
 ### "README.md not found" during install
@@ -47,7 +47,7 @@ uv pip install -e .
   "mcpServers": {
     "cso-ai": {
       "command": "/path/to/cso-ai/.venv/bin/python",
-      "args": ["-m", "cso_ai.server"]
+      "args": ["-m", "side.server"]
     }
   }
 }
@@ -67,7 +67,7 @@ uv pip install -e .
 ```bash
 cd cso-ai
 source .venv/bin/activate
-python -m cso_ai.server
+python -m side.server
 ```
 
 2. Check for errors in output
@@ -322,7 +322,7 @@ If you're still stuck:
 cd cso-ai
 source .venv/bin/activate
 python -c "
-from cso_ai.intel.auto_intelligence import AutoIntelligence
+from side.intel.auto_intelligence import AutoIntelligence
 import asyncio
 
 async def test():

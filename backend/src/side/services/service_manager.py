@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from side.services.file_watcher import FileWatcher
-from side.utils.cache_warmer import CacheWarmer, get_cache_warmer
+from side.services.file_watcher import FileWatcher
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +63,6 @@ class ServiceManager:
 
             # Start context tracker
             await self._start_context_tracker()
-
-            # Start cache warmer
-            await self._start_cache_warmer()
 
             # Start cleanup scheduler
             await self._start_cleanup_scheduler()
@@ -173,29 +170,7 @@ class ServiceManager:
 
         logger.info("✅ Context tracker started")
 
-    async def _start_cache_warmer(self) -> None:
-        """Start cache warmer service."""
-        logger.info("Starting cache warmer...")
 
-        from side.intel.market import MarketAnalyzer
-        from side.storage.simple_db import SimplifiedDatabase
-
-        db = SimplifiedDatabase()
-        market = MarketAnalyzer()
-
-        warmer = get_cache_warmer(db=db, market=market)
-        warmer.interval_minutes = 30  # Refresh every 30 min
-
-        await warmer.start()
-
-        self._services["cache_warmer"] = warmer
-        self._status["services"]["cache_warmer"] = {
-            "status": "running",
-            "started_at": datetime.now(timezone.utc).isoformat(),
-            "interval_minutes": 30,
-        }
-
-        logger.info("✅ Cache warmer started")
 
     async def _start_cleanup_scheduler(self) -> None:
         """Start cleanup scheduler service."""
@@ -290,21 +265,20 @@ class ServiceManager:
         if "context_tracker" in self._services:
             try:
                 tracker = self._services["context_tracker"]
-                await tracker.update_context(self.project_path, changed_files)
+                await tracker.update_context(self.project_path, files) # changed_files -> files
                 logger.debug("Work context updated")
             except Exception as e:
                 logger.error(f"Error updating context: {e}", exc_info=True)
 
-        # Invalidate query cache (context changed)
-        try:
-            from side.storage.simple_db import SimplifiedDatabase
-
-            db = SimplifiedDatabase()
-            deleted = db.invalidate_query_cache()
-            if deleted > 0:
-                logger.debug(f"Invalidated {deleted} cached queries")
-        except Exception as e:
-            logger.error(f"Error invalidating cache: {e}", exc_info=True)
+        # [V2: Invisible Intelligence] Trigger Proactive Audit
+        if "auditor" in self._services:
+            try:
+                auditor_service = self._services["auditor"]
+                # Run quick 8B LLM scan on the changed files
+                await auditor_service.auditor.quick_scan(files)
+                logger.info("Proactive V2 Audit complete (Invisible Layer)")
+            except Exception as e:
+                logger.error(f"Proactive Audit failed: {e}")
 
     async def _health_monitor(self) -> None:
         """Monitor service health."""
@@ -363,7 +337,6 @@ class ServiceManager:
                         logger.info(f"Reaper: Restarting {name}...")
                         if name == "supabase_sync": await self._start_supabase_sync()
                         elif name == "telemetry": await self._start_telemetry()
-                        elif name == "cache_warmer": await self._start_cache_warmer()
                         elif name == "cleanup_scheduler": await self._start_cleanup_scheduler()
 
             except asyncio.CancelledError:

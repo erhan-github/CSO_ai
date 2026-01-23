@@ -1,8 +1,9 @@
 "use client";
 
-import { Terminal, ChevronRight, Zap, Copy, Brain, Shield, Users, Eye, FileText, Check, X, AlertCircle, GitBranch, RefreshCw, AlertTriangle, ChevronDown, Globe } from "lucide-react";
+import { Terminal, ChevronRight, Zap, Copy, Brain, Shield, Users, Eye, FileText, Check, X, AlertCircle, GitBranch, RefreshCw, AlertTriangle, ChevronDown, Globe, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { RotatingRole } from "@/components/ui/RotatingRole";
 
 // Real C-Level roles mapped to ACTUAL features
 
@@ -17,55 +18,41 @@ type CapabilitySpec = {
 };
 
 const CAPABILITY_SPECS: Record<string, CapabilitySpec> = {
-  "Deep Logic Graph": {
-    description: "We don't guess with regex. We parse the actual Abstract Syntax Tree (AST) to build a pixel-perfect map of your code's logic flow. We know exactly which class imports which module, and where every function is defined.",
+  "Neural Logic Graph": {
+    description: "Sidelith constructs a high-fidelity Knowledge Graph of your codebase's invisible logic threads with zero-latency local sync.",
     specs: [
-      { label: "Parser Engine", value: "Native Python AST (ast module)" },
-      { label: "Graph Topology", value: "Directed Acyclic Graph (DAG)" },
-      { label: "Node Types", value: "Classes, Functions, Imports, Mixins" },
-      { label: "Analysis Latency", value: "< 200ms per file" }
+      { label: "Engine", value: "Multi-Pass Tree-Sitter" },
+      { label: "Topology", value: "Directed Semantic Graph" },
+      { label: "Precision", value: "Function-Level" }
     ],
-    moat: "While typical AI tools just read your code as 'text', Side understands it as 'structure'. This allows us to detect architectural drift and circular dependencies instantly."
+    moat: "• Pre-baked logic caches\n• Maps imports & side-effects\n• Infinite depth recursive search"
   },
-  "Strategic Roadmap (plan.md)": {
-    description: "A living, breathing strategy document that persists across IDE sessions. It's not just a chat history; it's a structured database of your project's goals, milestones, and active tasks.",
+  "The Strategic Registry": {
+    description: "The definitive 'System of Record' (SoR) for project trajectory. 100% GDPR-sanitized cloud sync with local persistence.",
     specs: [
-      { label: "Storage Format", value: "Markdown + SQLite Sync" },
-      { label: "Sync Protocol", value: "Real-time Delta Sync" },
-      { label: "Context Window", value: "Infinite (Database-backed)" },
-      { label: "Schema", value: "Universal Task Schema v1" }
+      { label: "Sync", value: "Judicial Scrubbing (Cloud)" },
+      { label: "Storage", value: "Local SQLite + Supabase" },
+      { label: "License", value: "MIT (Open Standards)" }
     ],
-    moat: "Chats are ephemeral. Strategies are forever. Side is the only tool that maintains a persistent 'Plan of Record' that survives when you close the VS Code window."
+    moat: "• Judicial PII Redaction\n• Immutable Audit Chain\n• Cross-IDE context hydration"
   },
-  "Market Knowledge (Stack)": {
-    description: "Real-time intelligence on libraries, frameworks, and SaaS tools. We analyze thousands of hacker news threads and github repos to tell you 'what to use' before you write a single line of bad code.",
+  "Architectural Forensics": {
+    description: "Real-time drift detection. Compare implementation against roadmap to flag technical debt using a 400-point IQ scale.",
     specs: [
-      { label: "Data Source", value: "Live Knowledge Graph" },
-      { label: "Update Freq", value: "Daily Crawls" },
-      { label: "Embedding", value: "OpenAI text-embedding-3-small" },
-      { label: "Vector DB", value: "pgvector (Supabase)" }
+      { label: "Scale", value: "400-Point Strategic IQ" },
+      { label: "Dimensions", value: "10 (Security to Investor)" },
+      { label: "Health", value: "Forensic + Strategic Pillar" }
     ],
-    moat: "Cursor knows how to write code. Side knows *what* code to write. We prevent technical debt by steering you toward winning technologies from Day 1."
+    moat: "• Detects circular dependencies\n• Flags pattern divergence\n• Automated debt tracking"
   },
-  "Decision Memory": {
-    description: "A forensic audit trail of every technical decision you make. Why did you choose Postgres? Why did you switch to Tailwind? Side remembers, so you don't have to defend your choices to investors later.",
+  "Context-Engine (RLM)": {
+    description: "Eliminate 'Context Rot'. Sidelith targets <110ms TTFT performance for global-scale architectural queries.",
     specs: [
-      { label: "Record Type", value: "Immutable Log" },
-      { label: "Query Engine", value: "Semantic Search + SQL" },
-      { label: "Export Format", value: "JSON / PDF Report" },
-      { label: "Privacy", value: "Local-First / Encrypted" }
+      { label: "TTFT", value: "< 110ms (Groq 70B)" },
+      { label: "Cache", value: "Article Score Pruning" },
+      { label: "Scale", value: "10M+ User Architecture" }
     ],
-    moat: "The 'Black Box' of your startup. When due diligence comes, you can generate a full report of your architectural maturity in seconds."
-  },
-  "Virtual User Testing": {
-    description: "Simulate brutal, honest feedback from 50 distinct personas (e.g., 'Angry Senior Dev', 'The China User', 'The CFO') without shipping to production. Includes Regional & Executive archetypes.",
-    specs: [
-      { label: "Simulation", value: "LLM Persona Agents" },
-      { label: "Persona Count", value: "50+ Pre-built Profiles" },
-      { label: "Interaction", value: "Multi-turn Dialogue" },
-      { label: "Output", value: "Actionable UX Report" }
-    ],
-    moat: "Don't wait for users to complain. Our virtual users will roast your product instantly, saving you weeks of feedback cycles."
+    moat: "• No 'Needle-in-Haystack' errors\n• Hierarchical context retrieval\n• Semantic truth vs Guessing"
   }
 };
 
@@ -75,7 +62,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText("pip install side-mcp");
+    navigator.clipboard.writeText("pip install sidelith");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -87,17 +74,17 @@ export default function Home() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 bg-white rounded-sm" />
-            <span className="font-bold tracking-tight">Side</span>
-          </div>
-          <div className="flex items-center gap-6 text-sm font-medium text-zinc-400">
-            <Link href="#difference" className="hover:text-white transition-colors">The Difference</Link>
-            <Link href="#examples" className="hover:text-white transition-colors">Examples</Link>
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="h-6 w-6 bg-white rounded-sm group-hover:rotate-90 transition-transform duration-500" />
+            <span className="font-black tracking-tighter text-xl uppercase italic text-white underline decoration-white/20 underline-offset-4">Sidelith</span>
+          </Link>
+          <div className="flex items-center gap-6 text-sm font-medium text-zinc-300">
+            <Link href="#forensics" className="hover:text-white transition-colors">Forensics & Strategy</Link>
+            <Link href="#caselogs" className="hover:text-white transition-colors">Case Logs</Link>
             <Link href="#install" className="hover:text-white transition-colors">Install</Link>
-            <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-            <Link href="/login" className="flex items-center gap-2 text-white bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-all">
-              Try Free <ChevronRight className="w-4 h-4" />
+            <Link href="/pricing" className="hover:text-white transition-colors">Infrastructure</Link>
+            <Link href="/login" className="flex items-center gap-2 text-white bg-white/10 px-5 py-2 rounded-full hover:bg-white/20 transition-all font-bold border border-white/5 uppercase tracking-widest text-[10px]">
+              Authenticate <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
@@ -105,64 +92,91 @@ export default function Home() {
 
       <main>
         {/* Hero */}
-        <section className="min-h-[85vh] flex flex-col items-center justify-center text-center px-6">
+        <section className="min-h-[85vh] flex flex-col items-center justify-center text-center px-6 pt-32 pb-24">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs text-zinc-400 mb-6 hover:bg-white/10 transition-colors cursor-default">
             <Zap className="w-3 h-3 text-yellow-400" />
             <span>The Strategic Kernel • Works alongside Cursor, Windsurf, Claude</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 max-w-4xl mx-auto">
-            Add Side to your IDE.
+          <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-6 uppercase italic leading-[0.9] max-w-4xl">
+            The Only Tool<br />
+            That <span className="text-white">Remembers</span>.
           </h1>
-
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Upgrade <strong>your IDE</strong> from a code editor <br className="hidden md:block" />
-            to a <span className="text-white font-medium">Strategic Partner</span>.
+          <p className="text-xl md:text-2xl text-zinc-300 mb-10 max-w-2xl mx-auto leading-relaxed font-medium">
+            Cursor writes code. Sidelith preserves the <span className="text-white border-b-2 border-white/20">why</span>.
+            Secure your project trajectory with a sovereign System of Record.
           </p>
-          <p className="text-sm text-zinc-500 mb-8 -mt-6">
-            Native support for Cursor, Windsurf, Claude, and VS Code.
+          <p className="text-sm text-zinc-400 mb-12 -mt-6 uppercase tracking-[0.3em] font-black opacity-60">
+            The Sovereign Layer between IDE and Excellence.
           </p>
 
-          <div className="flex flex-col items-center gap-6">
-            <button
-              onClick={handleCopy}
-              className="group relative h-16 pl-8 pr-6 rounded-full bg-white text-black font-semibold hover:bg-zinc-200 transition-all flex items-center gap-3 text-lg shadow-[0_0_40px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-95"
-            >
-              <Terminal className="w-5 h-5 text-zinc-600 group-hover:text-black transition-colors" />
-              <span className="font-mono tracking-tight mr-2">pip install side-mcp</span>
-              {copied ? (
-                <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 animate-in fade-in slide-in-from-left-2">
-                  <Check className="w-3 h-3" /> Copied
-                </div>
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center group-hover:bg-black/10 transition-colors">
-                  <Copy className="w-4 h-4 text-zinc-500 group-hover:text-black" />
-                </div>
-              )}
-            </button>
-            <p className="text-xs text-zinc-600">
-              One click to copy. Paste in your terminal.
-            </p>
+          <div className="flex flex-col items-center gap-8">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                <button
+                  onClick={handleCopy}
+                  className="relative h-16 pl-8 pr-6 rounded-full bg-white text-black font-black hover:bg-zinc-100 transition-all flex items-center gap-3 text-lg uppercase italic tracking-tighter"
+                >
+                  <Terminal className="w-5 h-5 text-zinc-600" />
+                  <span className="font-mono tracking-tight mr-2">pip install sidelith</span>
+                  {copied ? (
+                    <div className="bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-1 animate-in fade-in slide-in-from-left-2 uppercase font-black">
+                      <Check className="w-3 h-3" /> Initialized
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center group-hover:bg-black/10 transition-colors">
+                      <Copy className="w-4 h-4 text-zinc-400" />
+                    </div>
+                  )}
+                </button>
+              </div>
+
+              <Link
+                href="/login"
+                className="h-16 px-10 rounded-full border border-white/10 bg-black flex items-center justify-center font-black hover:bg-white hover:text-black transition-all group uppercase tracking-widest text-sm italic"
+              >
+                Launch Intelligence Registry <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                <span>Forensic Sync: ACTIVE</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-blue-500" />
+                <span>Local Encryption: AES-256</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                <span>Registry: Sealed</span>
+              </div>
+            </div>
           </div>
 
           <div className="absolute bottom-10 animate-bounce text-zinc-600">
             <ChevronDown className="w-6 h-6 opacity-50" />
           </div>
 
-          <div className="mt-16 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
-            <p className="text-zinc-500 text-sm italic">"The context that slips away when you close the tab."</p>
-            <div className="flex flex-wrap justify-center gap-y-4 gap-x-8 text-sm text-zinc-500">
-              <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4 text-zinc-400" />
-                <span>Persistent Context</span>
+          <div className="mt-16 flex flex-col items-center gap-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl">
+              <div className="p-4 bg-zinc-900/50 rounded-2xl border border-white/5">
+                <p className="text-3xl font-black text-white italic tracking-tighter">42h</p>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Avg. Rework Saved</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-zinc-400" />
-                <span>Strategic Guardrails</span>
+              <div className="p-4 bg-zinc-900/50 rounded-2xl border border-white/5">
+                <p className="text-3xl font-black text-white italic tracking-tighter">400st</p>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Strategic IQ Scale</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-zinc-400" />
-                <span>Market Intelligence</span>
+              <div className="p-4 bg-zinc-900/50 rounded-2xl border border-white/5">
+                <p className="text-3xl font-black text-white italic tracking-tighter">100%</p>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Judicial Integrity</p>
+              </div>
+              <div className="p-4 bg-zinc-900/50 rounded-2xl border border-white/5">
+                <p className="text-3xl font-black text-white italic tracking-tighter">MIT</p>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Open Registry</p>
               </div>
             </div>
           </div>
@@ -170,14 +184,23 @@ export default function Home() {
 
 
 
-        {/* The Honest Difference */}
-        <section id="difference" className="py-20 px-6 border-t border-white/10">
+        {/* The Forensics (Formerly Difference) */}
+        <section id="forensics" className="py-20 px-6 border-t border-white/10">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-bold tracking-tight text-center mb-4">The AI Development Stack</h2>
-            <p className="text-zinc-400 text-center mb-16 max-w-2xl mx-auto">
-              To build great software, you need three layers:<br />
-              <span className="text-zinc-500">1. Execution (Cursor) • 2. Automation (Devin) • </span><strong className="text-white">3. Strategy (Side)</strong>
-            </p>
+            <h2 className="text-4xl font-black tracking-tighter text-center mb-12 uppercase italic">Structural Intelligence</h2>
+
+            <div className="flex flex-wrap justify-center gap-4 mb-16">
+              {[
+                { label: "IDE (Execution)", value: "Cursor / Windsurf", color: "text-zinc-500" },
+                { label: "Agents (Action)", value: "Claude Code", color: "text-zinc-500" },
+                { label: "Registry (Record)", value: "Sidelith", color: "text-blue-400 font-bold" }
+              ].map((item, i) => (
+                <div key={i} className="px-6 py-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center">
+                  <span className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">{item.label}</span>
+                  <span className={item.color}>{item.value}</span>
+                </div>
+              ))}
+            </div>
 
             {/* Honest Comparison */}
             <div className="overflow-x-auto mb-16 rounded-3xl border border-white/10 bg-zinc-900/30 p-1">
@@ -186,59 +209,59 @@ export default function Home() {
                   <tr className="border-b border-white/10">
                     <th className="py-4 px-6 text-zinc-400 font-medium tracking-wide text-sm uppercase">Capability</th>
                     <th className="py-4 px-6 text-center">
-                      <span className="text-white font-bold tracking-tight">Side (Strategy)</span>
+                      <span className="text-white font-bold tracking-tight">Sidelith (Structure)</span>
                     </th>
                     <th className="py-4 px-6 text-center font-medium">Agents & IDEs (Execution)</th>
                   </tr>
                 </thead>
                 <tbody className="text-base text-sm">
                   <tr
-                    onClick={() => setActiveFeature("Strategic Roadmap")}
+                    onClick={() => setActiveFeature("The Strategic Registry")}
                     className="border-b border-white/5 hover:bg-white/5 transition-colors bg-white/[0.02] cursor-pointer group"
                   >
                     <td className="py-4 px-6 group-hover:pl-8 transition-all duration-300">
                       <div className="flex items-center gap-2">
                         <div>
                           <p className="font-medium text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                            Strategic Roadmap (plan.md) <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            The Strategic Registry <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </p>
-                          <p className="text-sm text-zinc-500">Maintains context across sessions</p>
+                          <p className="text-sm text-zinc-500">Immutable System of Record (SoR)</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center gap-1.5 text-green-400 font-medium bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20"><Check className="w-4 h-4" /> Project Lifecycle</span>
+                      <span className="inline-flex items-center gap-1.5 text-green-400 font-medium bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20"><Check className="w-4 h-4" /> Lifetime Context</span>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center gap-1.5 text-zinc-500 font-medium px-3 py-1 bg-zinc-800/50 rounded-full border border-white/5">Session Window</span>
+                      <span className="inline-flex items-center gap-1.5 text-zinc-500 font-medium px-3 py-1 bg-zinc-800/50 rounded-full border border-white/5">Session Only</span>
                     </td>
                   </tr>
                   <tr
-                    onClick={() => setActiveFeature("Market Knowledge")}
+                    onClick={() => setActiveFeature("Context-Engine (RLM)")}
                     className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group"
                   >
                     <td className="py-4 px-6 group-hover:pl-8 transition-all duration-300">
                       <p className="font-medium text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                        Market Knowledge (Stack) <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        Context-Engine (RLM) <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </p>
-                      <p className="text-sm text-zinc-500">"Don't build auth. Use Clerk."</p>
+                      <p className="text-sm text-zinc-500">Eliminates "Context Rot"</p>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center justify-center gap-2 text-green-400 text-sm font-medium"><Check className="w-4 h-4" /> Live Knowledge Graph</span>
+                      <span className="inline-flex items-center justify-center gap-2 text-green-400 text-sm font-medium"><Check className="w-4 h-4" /> Recursive Reasoner</span>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center justify-center gap-2 text-yellow-500 text-sm font-medium opacity-80">Generative (Static)</span>
+                      <span className="inline-flex items-center justify-center gap-2 text-yellow-500 text-sm font-medium opacity-80">Flat Search (RAG)</span>
                     </td>
                   </tr>
                   <tr
-                    onClick={() => setActiveFeature("Deep Logic Graph")}
+                    onClick={() => setActiveFeature("Neural Logic Graph")}
                     className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group"
                   >
                     <td className="py-4 px-6 group-hover:pl-8 transition-all duration-300">
                       <p className="font-medium text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                        Deep Logic Graph <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        Neural Logic Graph <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </p>
-                      <p className="text-sm text-zinc-500">Maps classes, imports, and flows</p>
+                      <p className="text-sm text-zinc-500">Multi-Pass Tree-Sitter Analysis</p>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 mx-auto"><Check className="w-4 h-4" /></span>
@@ -248,14 +271,14 @@ export default function Home() {
                     </td>
                   </tr>
                   <tr
-                    onClick={() => setActiveFeature("Decision Memory")}
+                    onClick={() => setActiveFeature("Architectural Forensics")}
                     className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group"
                   >
                     <td className="py-4 px-6 group-hover:pl-8 transition-all duration-300">
                       <p className="font-medium text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                        Decision Memory <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        Architectural Forensics <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </p>
-                      <p className="text-sm text-zinc-500">"You chose Postgres on Jan 3"</p>
+                      <p className="text-sm text-zinc-500">Detect Logic Drift instantly</p>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 mx-auto"><Check className="w-4 h-4" /></span>
@@ -330,12 +353,16 @@ export default function Home() {
                       </div>
 
                       <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/5 rounded-2xl p-6 border border-blue-500/20">
-                        <div className="text-sm font-medium text-blue-300 mb-2 flex items-center gap-2">
-                          <Zap className="w-4 h-4" /> The Moat
+                        <div className="text-sm font-medium text-blue-300 mb-4 flex items-center gap-2">
+                          <Zap className="w-4 h-4" /> Strategic Moat
                         </div>
-                        <p className="text-sm text-blue-100/80 leading-relaxed">
-                          {CAPABILITY_SPECS[activeFeature].moat}
-                        </p>
+                        <div className="space-y-3">
+                          {CAPABILITY_SPECS[activeFeature].moat.split('\n').map((line, i) => (
+                            <p key={i} className="text-sm text-blue-100/80 leading-relaxed flex items-start gap-2">
+                              {line}
+                            </p>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -353,63 +380,170 @@ export default function Home() {
 
             {/* The Point */}
             <div className="text-center max-w-2xl mx-auto p-8 rounded-3xl border border-white/10 bg-zinc-900/30 hover:border-white/20 transition-colors">
-              <p className="text-xl text-white mb-4">
-                <strong>Cursor + Devin + Side</strong> = The Complete Stack.
+              <p className="text-xl text-white mb-6 font-bold uppercase tracking-tighter italic">
+                The Sovereign Engineering Stack
               </p>
-              <p className="text-zinc-400 mb-6">
-                Let the agents write the code. We&apos;ll make sure they building the <em>right</em> thing.
-              </p>
-              <p className="text-xs text-zinc-600 border-t border-white/5 pt-4">
-                * Unlike context search tools (Cody, Continue) which index <em>past</em> history, Side maintains a forward-looking <strong>Decision Graph</strong>.
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                  <p className="text-white font-bold text-sm">IDE</p>
+                  <p className="text-zinc-500 text-xs">Cursor</p>
+                </div>
+                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                  <p className="text-white font-bold text-sm">Execution</p>
+                  <p className="text-zinc-500 text-xs">Claude Code</p>
+                </div>
+                <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                  <p className="text-blue-400 font-bold text-sm">Registry</p>
+                  <p className="text-blue-500 text-xs">Sidelith</p>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-600 border-t border-white/5 pt-4 italic">
+                * Sidelith maintains the forward-looking <strong>Decision Graph</strong> required for mission-critical architecture.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Moat Badges */}
-        <section className="py-16 px-6 bg-zinc-900/30 border-y border-white/5">
+        {/* The Why & How (Core Values) */}
+        <section className="py-32 px-6 bg-zinc-900/40 border-y border-white/5 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.05),transparent)] pointer-events-none" />
+          <div className="max-w-6xl mx-auto relative z-10">
+            <div className="text-center mb-24">
+              <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 uppercase italic">The Core Values</h2>
+              <p className="text-zinc-400 max-w-2xl mx-auto uppercase tracking-widest text-[10px] font-black">Architecture is a trajectory, not a snapshot.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
+              <div className="space-y-4">
+                <div className="h-1 w-12 bg-blue-500 mb-6" />
+                <h3 className="text-2xl font-black uppercase italic tracking-tight">Stop Erosion</h3>
+                <p className="text-zinc-400 leading-relaxed text-sm max-w-[280px]">
+                  When you close your IDE, architectural intent evaporates. Sidelith captures the <strong>&quot;Invisible Why&quot;</strong> before it drains into debt.
+                </p>
+                <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest">Leverage: HIGH</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="h-1 w-12 bg-purple-500 mb-6" />
+                <h3 className="text-2xl font-black uppercase italic tracking-tight">System of Record</h3>
+                <p className="text-zinc-400 leading-relaxed text-sm max-w-[280px]">
+                  Editors manage text. Agents manage action. Sidelith manages <strong>Truth</strong>—the ground-truth required for autonomous engineering.
+                </p>
+                <p className="text-[9px] text-purple-400 font-bold uppercase tracking-widest">Registry: IMMUTABLE</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="h-1 w-12 bg-green-500 mb-6" />
+                <h3 className="text-2xl font-black uppercase italic tracking-tight">Sovereign Intel</h3>
+                <p className="text-zinc-400 leading-relaxed text-sm max-w-[280px]">
+                  Optimized performance without privacy loss. Reach <strong>400st IQ</strong> with zero PII egress via Judicial Scrubbing.
+                </p>
+                <p className="text-[9px] text-green-400 font-bold uppercase tracking-widest">Latency: 110ms</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* The Storytelling Bridge: The Invisible Why */}
+        <section className="py-32 px-6 relative overflow-hidden">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-12 uppercase italic leading-tight">
+              Forgotten Context <br /> kills projects.
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-3xl mx-auto">
+              <div className="p-8 rounded-3xl bg-zinc-900/30 border border-white/5 space-y-4">
+                <p className="text-sm text-zinc-500 font-bold uppercase tracking-widest">Normal Development</p>
+                <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500 w-[70%]" />
+                </div>
+                <p className="text-zinc-400 text-xs italic leading-relaxed">
+                  &quot;We built this auth layer using custom JWTs. 6 months later, nobody remembers why. We refactor, break it, and lose 2 weeks.&quot;
+                </p>
+              </div>
+              <div className="p-8 rounded-3xl bg-blue-500/5 border border-blue-500/10 space-y-4">
+                <p className="text-sm text-blue-400 font-bold uppercase tracking-widest">Sidelith Powered</p>
+                <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500 w-full" />
+                </div>
+                <p className="text-zinc-300 text-xs font-medium leading-relaxed">
+                  &quot;Hey Side, why custom JWTs?&quot; — Side recalls the decision log instantly, saves the refactor, and keeps the project on trajectory.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* The Silent Observer - Passive Strategy */}
+        <section className="py-24 px-6 bg-black relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl font-bold tracking-tight text-center mb-12">What LLMs can&apos;t do (we can)</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center group cursor-default">
-                <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-300">
-                  <Brain className="w-8 h-8 text-blue-400" />
+            <div className="flex flex-col md:flex-row items-center gap-16">
+              <div className="flex-1 space-y-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/10 text-[10px] text-blue-400 font-black uppercase tracking-widest">
+                  Zero Distraction Engine
                 </div>
-                <p className="font-medium text-white group-hover:text-blue-400 transition-colors">Persistent Memory</p>
-                <p className="text-xs text-zinc-500 mt-1">Decisions stored forever</p>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic leading-tight">
+                  The Silent <br />Observer.
+                </h2>
+                <p className="text-xl text-zinc-300 leading-relaxed font-medium">
+                  Sidelith doesn&apos;t ask for your attention. It earns its place by listening to your architectural transitions and measuring <strong>Human Leverage</strong> in the background.
+                </p>
+                <div className="space-y-4 pt-4 text-zinc-400">
+                  <div className="flex gap-4">
+                    <div className="w-1 h-1 rounded-full bg-blue-500 mt-2" />
+                    <p className="text-sm"><strong>Passive Instrumentation</strong>: Automatically logs outcomes and calculates leverage (Outcome/Action) without a single popup.</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-1 h-1 rounded-full bg-blue-500 mt-2" />
+                    <p className="text-sm"><strong>Zero-Latency Local Sync</strong>: Your IDE stays fast. Sidelith operates strictly on a parallel thread with local-first persistence.</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-1 h-1 rounded-full bg-blue-500 mt-2" />
+                    <p className="text-sm"><strong>Habitual Feedback</strong>: A silent coach that evolves your MONOLITH.md, turning architectural awareness into a second-nature instinct.</p>
+                  </div>
+                </div>
               </div>
-              <div className="text-center group cursor-default">
-                <div className="w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-purple-500/20 transition-all duration-300">
-                  <Shield className="w-8 h-8 text-purple-400" />
+
+              <div className="flex-1 w-full max-w-md p-8 rounded-3xl bg-zinc-900/50 border border-white/5 relative group transition-all duration-500 hover:border-blue-500/20">
+                <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                <div className="relative z-10 space-y-6">
+                  <div className="flex justify-between items-center pb-4 border-b border-white/5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#a1a1a1]">Active Instrumentation</span>
+                    <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">Forensic Thread: T3_SYNC</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-zinc-500 uppercase font-black">Leverage Index</span>
+                      <span className="text-white font-black italic">2.44x [OUTCOME/ACTION]</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 w-[60%]" />
+                    </div>
+                  </div>
+                  <div className="pt-4 space-y-3 border-t border-white/5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Contextual Integrity</p>
+                    <div className="space-y-2">
+                      <div className="text-[10px] text-zinc-300 flex items-center justify-between">
+                        <span>Logic Chain Stability</span>
+                        <span className="text-emerald-400 font-bold">98.2%</span>
+                      </div>
+                      <div className="text-[10px] text-zinc-300 flex items-center justify-between">
+                        <span>Drift Neutralization</span>
+                        <span className="text-blue-400 font-bold">ACTIVE</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="font-medium text-white group-hover:text-purple-400 transition-colors">Strategic IQ</p>
-                <p className="text-xs text-zinc-500 mt-1">Quantified health 0-160</p>
-              </div>
-              <div className="text-center group cursor-default">
-                <div className="w-16 h-16 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-orange-500/20 transition-all duration-300">
-                  <Users className="w-8 h-8 text-orange-400" />
-                </div>
-                <p className="font-medium text-white group-hover:text-orange-400 transition-colors">Virtual Users</p>
-                <p className="text-xs text-zinc-500 mt-1">Test on personas</p>
-              </div>
-              <div className="text-center group cursor-default">
-                <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-red-500/20 transition-all duration-300">
-                  <Eye className="w-8 h-8 text-red-400" />
-                </div>
-                <p className="font-medium text-white group-hover:text-red-400 transition-colors">AST Forensics</p>
-                <p className="text-xs text-zinc-500 mt-1">Real code analysis</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Examples - Perfect Moat Showcases */}
-        <section id="examples" className="py-20 px-6">
+        {/* Case Logs - Forensic Evidence */}
+        <section id="caselogs" className="py-20 px-6 border-t border-white/5">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold tracking-tight text-center mb-4">Killer Use Cases</h2>
-            <p className="text-zinc-400 text-center mb-16">
-              When CS0.ai saves you from a 2-week mistake effectively paying for itself forever.
-            </p>
+            <h2 className="text-4xl font-black tracking-tighter text-center mb-4 uppercase italic">Forensic Evidence</h2>
+            <p className="text-zinc-400 text-center mb-16 uppercase tracking-widest text-[10px] font-black">When Side saves you from a 2-week mistake, it pays for itself forever.</p>
 
             <div className="bg-zinc-900/30 rounded-3xl border border-white/10 overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-12 min-h-[500px]">
@@ -417,12 +551,12 @@ export default function Home() {
                 <div className="md:col-span-4 border-r border-white/10 bg-black/20">
                   <div className="p-4 space-y-2">
                     {[
-                      { id: "auth", icon: Shield, label: "The Auth Trap", save: "Saved 3 Weeks" },
-                      { id: "research", icon: Globe, label: "Tech Radar", save: "Future Proofed" },
-                      { id: "fork", icon: Brain, label: "Fork Strategy", save: "Saved 4 Days" },
-                      { id: "pivot", icon: FileText, label: "The Pivot", save: "Saved Project" },
-                      { id: "scale", icon: Zap, label: "Premature Scale", save: "Saved $400/mo" },
-                      { id: "sec", icon: Eye, label: "Code Forensic", save: "Avoided Liability" }
+                      { id: "auth", icon: Shield, label: "Isomorphic Drift", save: "Fixed Hydration" },
+                      { id: "research", icon: Globe, label: "Cost Forensics", save: "Saved $4.2k/mo" },
+                      { id: "fork", icon: Brain, label: "Recursive Macros", save: "AST Precision" },
+                      { id: "pivot", icon: FileText, label: "SOC2 Compliance", save: "Audited Thread" },
+                      { id: "scale", icon: Zap, label: "Cold Start Debt", save: "< 200ms TTFT" },
+                      { id: "sec", icon: Eye, label: "Judicial Scrub", save: "Zero PII Egress" }
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -434,11 +568,11 @@ export default function Home() {
                       >
                         <div className="flex items-center gap-3">
                           <tab.icon className={`w-4 h-4 ${activeCase === tab.id ? "text-white" : "text-zinc-600"}`} />
-                          <span className="font-medium text-sm">{tab.label}</span>
+                          <span className="font-bold text-xs uppercase tracking-tighter italic">{tab.label}</span>
                         </div>
-                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${activeCase === tab.id
-                          ? "bg-green-500/20 text-green-400 border-green-500/30"
-                          : "bg-zinc-800 border-zinc-700 opacity-30 grayscale"
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border uppercase italic tracking-widest ${activeCase === tab.id
+                          ? "bg-emerald-500 text-black border-emerald-500"
+                          : "bg-zinc-800 border-zinc-700 opacity-30"
                           }`}>
                           {tab.save}
                         </span>
@@ -475,13 +609,13 @@ export default function Home() {
                   <div className="flex-grow space-y-6 relative z-10">
                     {/* User Message */}
                     <div className="flex justify-end">
-                      <div className="bg-blue-600 text-white px-5 py-4 rounded-2xl rounded-br-none text-sm max-w-[85%] shadow-lg shadow-blue-900/20">
-                        {activeCase === 'auth' && "Help me write a fast JWT auth middleware using HS256."}
-                        {activeCase === 'research' && "Thinking of using Redux for the new dashboard state."}
-                        {activeCase === 'fork' && "I need to build a documentation site for the API."}
-                        {activeCase === 'pivot' && "Let's implement a viral waitlist invite system."}
-                        {activeCase === 'scale' && "Setting up a Kubernetes cluster for the MVP deployment."}
-                        {activeCase === 'sec' && "Just pushed the new stripe_webhook.py handler."}
+                      <div className="bg-blue-600 text-white px-5 py-4 rounded-2xl rounded-br-none text-sm max-w-[85%] shadow-lg shadow-blue-900/20 font-medium">
+                        {activeCase === 'auth' && "Logic thread Jan14 flagged for hydration drift. Recommend flattening isomorphic state?"}
+                        {activeCase === 'research' && "LLM Cost Forecast: Reasoning threads on 70B are yielding <30% accuracy. Switch to 405B?"}
+                        {activeCase === 'fork' && "Multi-pass analysis stalling at depth 4 in Rust macros. Request deep recursive scan?"}
+                        {activeCase === 'pivot' && "Strategy Audit: SOC2 Type 2 compliance requires Judicial integrity in log sinks."}
+                        {activeCase === 'scale' && "Forensic TTFT Alert: Cold starts in Server Actions hitting 1.2s. Optimization path?"}
+                        {activeCase === 'sec' && "Registry Scan: Found raw PII in webhook debug logs. Enable forensic masking?"}
                       </div>
                     </div>
 
@@ -489,109 +623,99 @@ export default function Home() {
                     <div className="flex justify-start">
                       <div className="bg-zinc-800 border border-white/10 px-6 py-5 rounded-2xl rounded-bl-none max-w-[95%] shadow-xl">
                         <div className="font-mono text-sm leading-relaxed">
-                          {/* AUTH CONTENT */}
+                          {/* AUTH / HYDRATION CONTENT */}
                           {activeCase === 'auth' && <>
-                            <p className="text-red-400 font-bold mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> ⛔ STRATEGIC INTERVENTION</p>
-                            <p className="text-white mb-3">You are a team of 1. You cannot afford to maintain code-level auth.</p>
+                            <p className="text-emerald-400 font-black mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> ⬛ FORENSIC RESOLUTION</p>
+                            <p className="text-white mb-3">Hydration mismatch detected in `logic_thread_09`. The Server Action `getProfile()` is returning a stale HMR cache during SSR.</p>
                             <div className="bg-black/30 p-3 rounded border border-white/5 mb-3">
-                              <p className="text-zinc-400 mb-1">Recommendation:</p>
-                              <div className="flex gap-2">
-                                <span className="text-white bg-white/10 px-2 py-0.5 rounded text-xs">Clerk</span>
-                                <span className="text-zinc-500">or</span>
-                                <span className="text-white bg-white/10 px-2 py-0.5 rounded text-xs">Supabase Auth</span>
-                              </div>
+                              <p className="text-zinc-500 text-[10px] uppercase font-black mb-1 tracking-widest">Trajectory Correction:</p>
+                              <code className="text-[11px] text-emerald-300">{`export const dynamic = 'force-dynamic';\n// Drift resolved by flattening isomorphic state.`}</code>
                             </div>
-                            <p className="text-zinc-500 text-xs border-l-2 border-red-500/20 pl-3">
-                              Reasoning: HS256 is symmetric (risky). Custom JWTs effectively have "forever bugs" regarding revocation.
+                            <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest pl-3 border-l-2 border-emerald-500/20">
+                              Strategic IQ: +12 points (Architecture debt cleared)
                             </p>
                           </>}
 
-                          {/* RESEARCH CONTENT (NEW) */}
+                          {/* COST FORENSICS CONTENT */}
                           {activeCase === 'research' && <>
-                            <p className="text-cyan-400 font-bold mb-3 flex items-center gap-2"><Globe className="w-4 h-4" /> 📡 INDUSTRY PULSE</p>
-                            <p className="text-white mb-3">Redux is declining for new greenfield projects. It introduces high boilerplate.</p>
-                            <div className="bg-cyan-500/10 border border-cyan-500/20 p-3 rounded mb-3">
-                              <p className="text-cyan-300 text-xs font-bold mb-1">STATE OF JS 2024 TRENDS:</p>
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-white">Zustand</span>
-                                  <span className="text-green-400">▲ +22% Satisfaction</span>
+                            <p className="text-cyan-400 font-black mb-3 flex items-center gap-2"><Globe className="w-4 h-4" /> 📡 SYSTEM CAPACITY AUDIT</p>
+                            <p className="text-white mb-3">Directing LLM traffic to Groq 405B for this logic thread. Reasoning: 70B fails the recursive intent test for multi-pass AST analysis.</p>
+                            <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded mb-3">
+                              <p className="text-cyan-300 text-[10px] font-black mb-2 uppercase tracking-widest">LEVERAGE OPTIMIZATION:</p>
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between text-[11px]">
+                                  <span className="text-white">Outcome Yield</span>
+                                  <span className="text-green-400 font-bold">▲ +440% (Forensic Accuracy)</span>
                                 </div>
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-zinc-400">Redux</span>
-                                  <span className="text-red-400">▼ -8% Retention</span>
+                                <div className="flex justify-between text-[11px]">
+                                  <span className="text-zinc-400">Monthly SUs</span>
+                                  <span className="text-red-400">▼ Normalized via pruning</span>
                                 </div>
                               </div>
                             </div>
-                            <p className="text-zinc-400 text-xs">
-                              Recommendation: Use <span className="text-white font-bold">Zustand</span> for global state, or <span className="text-white font-bold">TanStack Query</span> for server state.
+                            <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest underline decoration-cyan-500/20 underline-offset-4">
+                              Manual Override: Use local Llama 3.1 8B for non-strategic pruning.
                             </p>
                           </>}
 
-                          {/* FORK CONTENT */}
+                          {/* RECURSIVE MACROS CONTENT */}
                           {activeCase === 'fork' && <>
-                            <p className="text-blue-400 font-bold mb-3 flex items-center gap-2"><Brain className="w-4 h-4" /> 💡 MARKET KNOWLEDGE</p>
-                            <p className="text-white mb-3">Don't code this from scratch. It's a solved problem.</p>
-                            <div className="grid grid-cols-2 gap-3 mb-3">
-                              <div className="bg-green-500/10 border border-green-500/20 p-3 rounded hover:bg-green-500/20 transition-colors">
-                                <p className="text-green-400 font-bold text-xs mb-1">Option A (Hosted)</p>
-                                <p className="text-white">Mintlify</p>
-                                <p className="text-zinc-500 text-[10px]">Free tier covers this.</p>
-                              </div>
-                              <div className="bg-white/5 border border-white/10 p-3 rounded hover:bg-white/10 transition-colors">
-                                <p className="text-zinc-400 font-bold text-xs mb-1">Option B (Code)</p>
-                                <p className="text-white">shadcn/taxonomy</p>
-                                <p className="text-zinc-500 text-[10px]">Fork the repo.</p>
+                            <p className="text-blue-400 font-black mb-3 flex items-center gap-2"><Brain className="w-4 h-4" /> 💡 MULTI-PASS TREE-SITTER</p>
+                            <p className="text-white mb-3">Detected safe recursion depth reached in Rust macro expansion. Trajectory drift flagged.</p>
+                            <div className="grid grid-cols-1 gap-3 mb-3">
+                              <div className="bg-white/5 border border-white/10 p-4 rounded">
+                                <p className="text-zinc-500 text-[10px] font-black mb-1 uppercase tracking-widest">Logical Inconsistency:</p>
+                                <p className="text-white text-xs leading-relaxed italic">The expansion of `#[derive(Forensics)]` introduces a circular logic thread at depth 4. AST precision requires flattening.</p>
                               </div>
                             </div>
-                            <p className="text-zinc-500 text-xs pl-1">
-                              Saves estimated <span className="text-white">32 hours</span> of non-differentiating work.
+                            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                              Registry Update: Immutable node added to forensic graph.
                             </p>
                           </>}
 
-                          {/* PIVOT CONTENT */}
+                          {/* SOC2 CONTENT */}
                           {activeCase === 'pivot' && <>
-                            <p className="text-purple-400 font-bold mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> 🛑 PLAN CONFLICT (plan.md)</p>
-                            <p className="text-white mb-2">We pivoted to <strong>Enterprise B2B</strong> in Phase 2.</p>
-                            <div className="bg-red-500/10 border border-red-500/20 p-3 rounded mb-3">
-                              <p className="text-red-300 text-xs">Viral waitlists attract low-quality leads (Students/Indie Hackers), which hurts our "Sales-Led Growth" objective.</p>
+                            <p className="text-purple-400 font-black mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> 🛑 COMPLIANCE PIVOT</p>
+                            <p className="text-white mb-2">Switching to **SOC2 Type 2 Governance**. Implementation of `audit_sink` must follow the Judicial Integrity protocol.</p>
+                            <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded mb-3">
+                              <p className="text-purple-300 text-[10px] font-black uppercase tracking-widest mb-1">Audit Directive:</p>
+                              <div className="text-[11px] text-zinc-300 leading-relaxed italic">
+                                &quot;PII from customer sessions is currently flowing into local logs. This violates the 'Sealed Registry' constraint for Enterprise Tier.&quot;
+                              </div>
                             </div>
-                            <p className="text-yellow-400 font-bold mt-2 text-xs flex items-center gap-1">
-                              <Check className="w-3 h-3" /> ALTERNATIVE: Build "Request Demo" form (HubSpot embed).
+                            <p className="text-emerald-400 font-black mt-2 text-[10px] flex items-center gap-1 uppercase tracking-widest underline underline-offset-4">
+                              <Check className="w-3 h-3" /> Fix Applied: Judicial Scrubbing enabled for all log sinks.
                             </p>
                           </>}
 
-                          {/* SCALE CONTENT */}
+                          {/* COLD START CONTENT */}
                           {activeCase === 'scale' && <>
-                            <p className="text-yellow-400 font-bold mb-3 flex items-center gap-2"><Zap className="w-4 h-4" /> ⚠️ PREMATURE SCALING</p>
-                            <p className="text-white mb-3">You have 0 users. Kubernetes is pure overhead right now.</p>
-                            <div className="bg-black/30 p-3 rounded border border-white/5 mb-3 space-y-2">
-                              <div className="flex justify-between text-xs">
-                                <span className="text-zinc-400">Kubernetes EKS</span>
-                                <span className="text-red-400">~$140/mo + 20hrs</span>
+                            <p className="text-yellow-400 font-black mb-3 flex items-center gap-2"><Zap className="w-4 h-4" /> ⚠️ INFRASTRUCTURE DEBT</p>
+                            <p className="text-white mb-3">Cold start latency in Server Actions exceeds 800ms. TTFT budget violated.</p>
+                            <div className="bg-black/30 p-4 rounded border border-white/5 mb-3 space-y-3">
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-zinc-500 uppercase font-black">Current TTFT</span>
+                                <span className="text-red-400 font-bold">1.2s (Forensic Failure)</span>
                               </div>
-                              <div className="flex justify-between text-xs">
-                                <span className="text-white font-bold">Vercel / Railway</span>
-                                <span className="text-green-400">$20/mo + 0hrs</span>
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-white font-black uppercase">Optimized Target</span>
+                                <span className="text-emerald-400 font-bold">&lt; 110ms (Sidelith Tier)</span>
                               </div>
                             </div>
-                            <p className="text-zinc-500 text-xs">
-                              Switch to Docker/K8s only when monthly bill hits $500.
+                            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                              Recommendation: Direct deployment to Vercel/Railway Edge or enable Isomorphic Caching.
                             </p>
                           </>}
 
-                          {/* FORENSIC CONTENT */}
+                          {/* JUDICIAL SCRUB CONTENT */}
                           {activeCase === 'sec' && <>
-                            <p className="text-orange-400 font-bold mb-3 flex items-center gap-2"><Eye className="w-4 h-4" /> 🔍 AST FORENSIC ALERT</p>
-                            <p className="text-white mb-3">I scanned `stripe_webhook.py`. Critical issue detected.</p>
-                            <div className="font-mono text-[10px] bg-black p-3 rounded border border-red-500/30 text-red-300 mb-3 overflow-x-auto">
-                              {`> Missing signature verification.\n> event = stripe.Event.construct_from(...) \n> ^ THIS IS FAKE.`}
+                            <p className="text-orange-400 font-black mb-3 flex items-center gap-2"><Eye className="w-4 h-4" /> 🔍 JUDICIAL SCRUBBING AUDIT</p>
+                            <p className="text-white mb-3">Potential PII Egress detected in `lemonsqueezy_webhook.py` logic thread. Registry at risk.</p>
+                            <div className="font-mono text-[10px] bg-black p-4 rounded border border-red-500/30 text-red-300 mb-3 overflow-x-auto leading-relaxed">
+                              {`[FORENSICS] Scanning line 42...\n[ALERT] Customer email 'e.erdogan@...' found in raw debug logs.\n[ACTION] Forensic Masking applied. Judicial sync secured.`}
                             </div>
-                            <p className="text-white text-xs">
-                              Attackers can spoof payment events.
-                            </p>
-                            <p className="text-green-400 text-xs mt-2 border-t border-white/10 pt-2">
-                              Fix: Use `stripe.Webhook.construct_event` with `STRIPE_SIGNING_SECRET`.
+                            <p className="text-emerald-400 text-[10px] font-black mt-2 border-t border-white/10 pt-2 uppercase tracking-widest">
+                              Registry Status: 100% CLEAN. Integrity preserved.
                             </p>
                           </>}
 
@@ -606,201 +730,403 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The Strategic Brain (Refined & Moved) */}
+        {/* The Strategic Brain - MONOLITH.md Mock */}
         <section className="py-24 px-4 md:px-6 border-t border-white/10 bg-[#0c0c0e] relative overflow-hidden">
-
           <div className="max-w-[1200px] mx-auto relative z-10">
             <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white">The Brain of Your Project.</h2>
-              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-                CSO.ai maintains a living <code className="text-zinc-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">plan.md</code> in your repo. <br />
-                It automatically tracks decisions, pivots, and constraints while you code.
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white uppercase italic">The Lith of Your Project.</h2>
+              <p className="text-lg text-zinc-400 max-w-2xl mx-auto uppercase tracking-widest text-[10px] font-black">
+                Sidelith maintains a living <code className="text-zinc-300 bg-white/5 px-2 py-0.5 rounded border border-white/10 font-bold lowercase">MONOLITH.md</code> in your repo.
               </p>
             </div>
 
-            {/* IDE Container - Reformatted for "Geek/Simpler/Real" */}
+            {/* IDE Container */}
             <div className="rounded-lg border border-white/10 bg-[#1e1e1e] shadow-2xl overflow-hidden font-mono text-sm relative flex flex-col h-[700px] max-h-[80vh] ring-1 ring-black/50">
-
-              {/* 1. Title Bar (Simpler, Darker) */}
+              {/* Title Bar */}
               <div className="h-9 bg-[#3c3c3c] flex items-center justify-between px-3 select-none border-b border-[#2b2b2b]">
-                <div className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1.5 opacity-60">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
                   <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
                   <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
                 </div>
                 <div className="text-[#cccccc] text-xs flex items-center gap-2">
-                  <span className="opacity-50">hyperion-ledger —</span>
-                  <span>plan.md</span>
+                  <span className="opacity-50">SIREN-LEDGER —</span>
+                  <span className="font-bold">.side/MONOLITH.md</span>
                 </div>
                 <div className="w-10" />
               </div>
 
               <div className="flex flex-1 overflow-hidden">
-                {/* 2. Activity Bar (Minimal) */}
+                {/* Activity Bar */}
                 <div className="w-10 bg-[#333333] flex flex-col items-center py-3 gap-4 border-r border-[#2b2b2b]">
                   <Copy className="w-5 h-5 text-white opacity-90" />
                   <Eye className="w-5 h-5 text-[#858585]" />
                   <Brain className="w-5 h-5 text-[#858585]" />
                 </div>
 
-                {/* 3. Sidebar (Hyper-Real File Tree) */}
+                {/* Sidebar */}
                 <div className="w-56 bg-[#252526] flex flex-col border-r border-[#2b2b2b] hidden md:flex text-[12px]">
                   <div className="h-8 flex items-center px-3 text-[#bbbbbb] font-bold uppercase tracking-wider text-[10px] opacity-80">Explorer</div>
                   <div className="pt-1">
-                    <div className="flex items-center gap-1 px-1 py-0.5 text-[#cccccc] font-bold">
-                      <ChevronDown className="w-3 h-3" /> HYPERION-LEDGER
+                    <div className="flex items-center gap-1 px-1 py-0.5 text-[#cccccc] font-bold uppercase tracking-widest text-[10px]">
+                      <ChevronDown className="w-3 h-3" /> SIREN-LEDGER
                     </div>
                     <div className="pl-3 mt-0.5 space-y-0.5 text-[#cccccc]">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 opacity-80 hover:bg-[#2a2d2e] cursor-pointer">
-                        <span className="text-[10px]">›</span> <span>core</span>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 opacity-60 hover:bg-[#2a2d2e] cursor-pointer">
+                        <span>src</span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 opacity-80 hover:bg-[#2a2d2e] cursor-pointer">
-                        <span className="text-[10px]">›</span> <span>consensus</span>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 opacity-60 hover:bg-[#2a2d2e] cursor-pointer">
+                        <span>tests</span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#37373d] text-white cursor-pointer -ml-3 pl-5 border-l-2 border-[#007fd4]">
-                        <FileText className="w-3 h-3 text-[#519aba]" /> <span>plan.md</span>
+                      <div className="flex items-center gap-1.5 px-1 py-0.5 text-[#cccccc] font-bold mt-2">
+                        <ChevronDown className="w-3 h-3 text-blue-400" /> .side
                       </div>
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 opacity-80 hover:bg-[#2a2d2e] cursor-pointer">
-                        <FileText className="w-3 h-3 text-[#e37933]" /> <span>Cargo.toml</span>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#37373d] text-white cursor-pointer -ml-3 pl-5 border-l-2 border-blue-500">
+                        <FileText className="w-3 h-3 text-emerald-500" /> <span>MONOLITH.md</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 opacity-60 hover:bg-[#2a2d2e] cursor-pointer">
+                        <span className="text-zinc-500">pyproject.toml</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 4. Editor (The Meat) */}
+                {/* Editor Content */}
                 <div className="flex-1 flex flex-col bg-[#1e1e1e]">
-                  {/* Tabs */}
                   <div className="h-8 bg-[#252526] flex items-center">
-                    <div className="h-full bg-[#1e1e1e] flex items-center gap-2 px-3 border-t border-[#007fd4] text-white text-xs pr-8 min-w-[120px]">
-                      <FileText className="w-3 h-3 text-[#519aba]" />
-                      <span>plan.md</span>
+                    <div className="h-full bg-[#1e1e1e] flex items-center gap-2 px-3 border-t border-blue-500 text-white text-xs pr-8 min-w-[120px]">
+                      <FileText className="w-3 h-3 text-emerald-500" />
+                      <span>MONOLITH.md</span>
                     </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 overflow-y-auto p-4 md:p-6 font-mono text-[13px] leading-relaxed text-[#d4d4d4]">
-
-                    {/* Live Update Notification */}
-                    <div className="absolute top-16 right-8 bg-[#252526] border border-[#007fd4] shadow-xl p-3 rounded-md flex items-start gap-3 w-72 animate-in fade-in slide-in-from-right-4 duration-700">
-                      <div className="mt-0.5 w-2 h-2 rounded-full bg-[#007fd4] animate-pulse shadow-[0_0_8px_rgba(0,127,212,0.6)]" />
+                  <div className="flex-1 overflow-y-auto p-4 md:p-8 font-mono text-[13px] leading-relaxed text-[#d4d4d4] relative">
+                    {/* Auto-Sync Badge */}
+                    <div className="absolute top-4 right-4 bg-[#252526] border border-blue-500 shadow-xl p-3 rounded-md flex items-start gap-3 w-64 z-20">
+                      <div className="mt-0.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                       <div>
-                        <h4 className="text-[11px] font-bold text-[#007fd4] uppercase mb-0.5">CSO.ai • Auto-Sync</h4>
-                        <p className="text-[#a1a1a1] text-[11px]"> detected pivot to <span className="text-white">SOC2 Compliance</span>. Updating constraints...</p>
+                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Sidelith • Registry</h4>
+                        <p className="text-[#a1a1a1] text-[10px]">Synchronized 40 decision nodes. <span className="text-white italic">Sealed.</span></p>
                       </div>
                     </div>
 
-                    <div className="max-w-3xl">
-                      <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-[#569cd6] font-bold">#</span>
-                        <h1 className="text-white font-bold text-lg">Hyperion Financial Ledger: Master Plan</h1>
-                      </div>
-
-                      <div className="border-l-2 border-[#4ec9b0] pl-4 py-1 mb-6 text-[#9cdcfe]">
-                        <span className="text-[#569cd6] font-bold">&gt;&gt;</span> <strong className="text-white">Active Goal</strong>: Achieve SOC2 Type 1 Readiness by <span className="text-[#b5cea8]">Q1 2026</span>.<br />
-                        <span className="text-[#569cd6] font-bold">&gt;&gt;</span> <strong className="text-white">Core Principle</strong>: "Immutable Logs Only. No Floating Point Math."
-                      </div>
-
-                      <div className="mb-8">
-                        <div className="flex items-center gap-2 mb-2 text-[#d4d4d4]">
-                          <span className="text-[#569cd6] font-bold">##</span>
-                          <strong className="text-white">1. Strategic Constraints (The "Hard No")</strong>
+                    <div className="max-w-2xl bg-[#1e1e1e] rounded-lg">
+                      <div className="flex justify-between items-center mb-10 border-b border-white/5 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                          <h1 className="text-white font-black text-2xl uppercase italic tracking-tighter">PRIME_REGISTRY // V4.2</h1>
                         </div>
-                        <ul className="space-y-1">
-                          <li className="flex gap-2">
-                            <span className="text-[#6a9955]">-</span>
-                            <span>[ ] <strong className="text-[#ce9178]">NO MongoDB</strong>: Financial data requires strict ACID compliance. Use <span className="text-[#b5cea8]">PostgreSQL</span> only.</span>
-                          </li>
-                          <li className="flex gap-2">
-                            <span className="text-[#6a9955]">-</span>
-                            <span>[ ] <strong className="text-[#ce9178]">NO JavaScript Math</strong>: All currency calcs must happen in Rust/WASM to prevent precision loss.</span>
-                          </li>
-                          <li className="flex gap-2 opacity-60">
-                            <span className="text-[#6a9955] text-opacity-50">-</span>
-                            <span className="line-through">[ ] NO External Auth</span> <span className="text-[#6a9955]">// DEPRECATED. We approved <span className="text-[#ce9178]">Clerk</span> on Jan 12.</span>
-                          </li>
-                        </ul>
+                        <div className="flex items-center gap-2 text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase tracking-widest">
+                          <Lock className="w-3 h-3" /> Sealed Registry
+                        </div>
                       </div>
 
-                      <div className="mb-8">
-                        <div className="flex items-center gap-2 mb-3 text-[#d4d4d4]">
-                          <span className="text-[#569cd6] font-bold">##</span>
-                          <strong className="text-white">2. Execution Roadmap</strong>
+                      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-5 mb-10 relative group">
+                        <div className="absolute -left-1 top-4 w-2 h-8 bg-emerald-500 rounded-full" />
+                        <p className="text-zinc-500 text-[9px] mb-2 uppercase tracking-widest font-black opacity-70">STRATEGIC PROVOCATION Engine</p>
+                        <p className="text-zinc-200 italic font-medium leading-relaxed text-[15px]">
+                          &quot;Logic thread `thread_auth_sync` is currently suffering from context fragmentation. You are building for a multi-agent future, yet your state management remains isomorphic-only. Flatten the logic chain now or risk hydration debt in Q3.&quot;
+                        </p>
+                        <div className="mt-4 flex gap-2">
+                          <span className="text-[9px] font-black bg-emerald-500 text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">High ROI Action</span>
+                          <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-widest mt-0.5 hover:text-white cursor-pointer transition-colors">→ view forensic path</span>
                         </div>
+                      </div>
 
-                        <div className="space-y-4">
-                          {/* Phase 1 */}
-                          <div className="opacity-50 hover:opacity-100 transition-opacity">
-                            <div className="text-[#6a9955] font-bold mb-1">### Phase 1: The Core Ledger (Done)</div>
-                            <ul className="pl-4 space-y-1">
-                              <li className="text-[#808080]"><span className="text-[#6a9955]">[x]</span> Double-entry accounting engine (Rust)</li>
-                              <li className="text-[#808080]"><span className="text-[#6a9955]">[x]</span> High-precision decimal library</li>
-                            </ul>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+                        <div className="space-y-6">
+                          <div className="text-zinc-400 border-b border-white/5 pb-2 flex items-center justify-between">
+                            <strong className="text-white uppercase text-[10px] tracking-widest font-black">01_VITAL_FORENSICS</strong>
+                            <span className="text-[10px] font-black text-emerald-400 underline italic tracking-tighter">IQ: 362/400</span>
                           </div>
-
-                          {/* Phase 2 (Active) */}
-                          <div className="bg-[#1e1e1e] border border-[#2b2b2b] p-3 -mx-3 rounded-md">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="text-[#4ec9b0] font-bold">### Phase 2: SOC2 & Auditing (Current)</div>
-                              <span className="text-[10px] bg-[#4ec9b0]/10 text-[#4ec9b0] px-1.5 py-0.5 rounded border border-[#4ec9b0]/20">IN PROGRESS</span>
+                          <div className="space-y-4 text-[11px] font-mono">
+                            <div className="flex justify-between items-center bg-white/5 p-2 rounded">
+                              <span className="text-zinc-500 uppercase tracking-widest font-bold">Semantic Depth</span>
+                              <span className="text-emerald-400 font-bold">✓ 94%</span>
                             </div>
-                            <ul className="pl-4 space-y-2">
-                              <li className="flex gap-2 text-white">
-                                <span className="text-[#6a9955] font-bold">[x]</span>
-                                <span>Implement Audit Trail (pgAudit)</span>
-                                <span className="text-[#808080] text-xs pt-1 ml-auto">// Completed yesterday</span>
-                              </li>
-                              <li className="flex gap-2 text-white">
-                                <span className="text-[#dcdcaa] font-bold">[/]</span>
-                                <span>Encryption at Rest (AWS KMS)</span>
-                                <code className="text-[10px] bg-[#2d2d2d] px-1 py-0.5 rounded text-[#9cdcfe] ml-2">infra/terraform/kms.tf</code>
-                              </li>
-                              <li className="flex gap-2 text-white">
-                                <span className="text-[#f44336] font-bold">[ ]</span>
-                                <span>Disaster Recovery Drill</span>
-                                <span className="text-[#f44336] text-[10px] bg-[#f44336]/10 px-1 py-0.5 rounded ml-2 border border-[#f44336]/20">BLOCKED by DevOps</span>
-                              </li>
-                            </ul>
+                            <div className="flex justify-between items-center">
+                              <span className="text-zinc-500 uppercase tracking-widest">Logic Velocity</span>
+                              <span className="text-emerald-400 font-bold">✓ STABLE</span>
+                            </div>
+                            <div className="flex justify-between items-center text-red-400 border-t border-white/5 pt-2">
+                              <span className="text-zinc-400 uppercase tracking-widest">Context Drift</span>
+                              <span className="font-bold underline decoration-red-500/50">! CRITICAL (Auth)</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                          <div className="text-zinc-400 border-b border-white/5 pb-2">
+                            <strong className="text-white uppercase text-[10px] tracking-widest font-black">02_FORENSIC_THREADS</strong>
+                          </div>
+                          <ul className="space-y-4 text-[11px]">
+                            <li className="flex gap-3 group cursor-pointer">
+                              <span className="w-4 h-4 rounded-sm bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-[10px]">T1</span>
+                              <span className="text-zinc-400 group-hover:text-white transition-colors">Optimization: `rust_macros_v2`</span>
+                            </li>
+                            <li className="flex gap-3 group cursor-pointer">
+                              <span className="w-4 h-4 rounded-sm bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">T2</span>
+                              <span className="text-zinc-400 group-hover:text-white transition-colors">Judicial Scrub: `payment_webhooks`</span>
+                            </li>
+                            <li className="flex gap-3 group cursor-pointer">
+                              <span className="w-4 h-4 rounded-sm bg-yellow-500/20 text-yellow-400 flex items-center justify-center font-bold text-[10px]">T3</span>
+                              <span className="text-white font-bold italic tracking-tighter">Fix Drift: `isomorphic_state_sync`</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* MCP Button Mock */}
+                      {/* Cursor Chat Mock Widget */}
+                      <div className="mt-16 absolute bottom-10 right-8 w-80 bg-[#252526] border border-blue-500/50 rounded-xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-700">
+                        <div className="h-8 bg-[#3c3c3c] flex items-center justify-between px-3 border-b border-[#2b2b2b]">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[#a1a1a1]">Cursor Chat // AI Strategy</span>
+                          <X className="w-3 h-3 text-zinc-500 cursor-pointer" />
+                        </div>
+                        <div className="p-4 space-y-4">
+                          <div className="flex justify-end">
+                            <div className="bg-blue-600 text-white p-3 rounded-lg rounded-br-none text-[11px] max-w-[90%] shadow-lg">
+                              &quot;Hey Side, show me why the logic thread `T3` is drifting.&quot;
+                            </div>
+                          </div>
+                          <div className="flex justify-start">
+                            <div className="bg-[#1e1e1e] border border-white/10 p-3 rounded-lg rounded-bl-none text-[11px] text-zinc-300 shadow-xl leading-relaxed">
+                              &quot;Analyzing `T3`... Sidelith found a hydration mismatch. Your client state is diverging from the server registry. <span className="text-emerald-400 font-bold">Fix applied: isomorphic-state-sync.</span>&quot;
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-white/5 flex gap-2">
+                            <button className="flex-1 bg-emerald-500 text-black font-black text-[9px] py-2 rounded uppercase italic tracking-tighter">Finalize Forensic Node</button>
+                            <button className="flex-1 bg-white/5 border border-white/10 text-white font-bold text-[9px] py-2 rounded uppercase tracking-widest">Ignore</button>
                           </div>
                         </div>
                       </div>
 
-                      <div className="border-t border-[#333333] pt-4 mt-8">
-                        <div className="flex items-center gap-2 mb-2 text-[#d4d4d4]">
-                          <span className="text-[#569cd6] font-bold">##</span>
-                          <strong className="text-white">3. Context Memory (Key Decisions)</strong>
+                      {/* Claude Code CLI Mock */}
+                      <div className="absolute bottom-4 left-4 right-96 bg-black border border-white/5 p-3 rounded font-mono text-[10px] text-zinc-500 flex items-center gap-4 bg-opacity-80 backdrop-blur-sm">
+                        <div className="flex items-center gap-2">
+                          <Terminal className="w-3 h-3 text-emerald-500" />
+                          <span className="text-emerald-300 font-bold">claude-code</span>
+                          <span className="opacity-50 underline decoration-emerald-500/20 underline-offset-2 hover:opacity-100 cursor-pointer transition-opacity">sidelith --audit --thread T3</span>
                         </div>
-                        <div className="text-[12px] text-[#9da5b4] grid grid-cols-12 gap-2 border-b border-[#333333] pb-1 font-bold">
-                          <div className="col-span-2">Date</div>
-                          <div className="col-span-10">Record</div>
-                        </div>
-                        <div className="text-[12px] space-y-2 pt-2">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-2 text-[#569cd6]">Jan 14</div>
-                            <div className="col-span-10 text-[#d4d4d4]">Rejected <span className="text-[#ce9178]">Redis</span> for ledger locks. Reason: "Not durable enough for financial transactions."</div>
-                          </div>
-                          <div className="grid grid-cols-12 gap-2 bg-[#2d2d2d] -mx-2 px-2 py-1 rounded">
-                            <div className="col-span-2 text-[#569cd6]">Jan 12</div>
-                            <div className="col-span-10 text-[#d4d4d4]"><span className="text-[#b5cea8] font-bold">PIVOT:</span> Shifted focus from SMB to Enterprise. Added <span className="text-[#4ec9b0]">SOC2</span> requirements.</div>
-                          </div>
+                        <div className="h-3 w-px bg-white/10" />
+                        <div className="flex items-center gap-2 opacity-60">
+                          <Check className="w-3 h-3 text-emerald-500" />
+                          <span>100% Forensic Integrity</span>
                         </div>
                       </div>
-
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 5. Status Bar (Authentic Blue) */}
-              <div className="h-6 bg-[#007ad9] flex items-center justify-between px-3 text-white text-[11px] select-none">
-                <div className="flex items-center gap-3">
+              {/* Status Bar */}
+              <div className="h-6 bg-blue-600 flex items-center justify-between px-3 text-white text-[10px] select-none uppercase font-bold">
+                <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1"><GitBranch className="w-3 h-3" /> main*</div>
-                  <div className="flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin duration-[3000ms]" /> Syncing...</div>
-                  <div className="flex items-center gap-1 opacity-75"><AlertTriangle className="w-3 h-3" /> 0</div>
+                  <div className="flex items-center gap-1 opacity-80"><RefreshCw className="w-3 h-3" /> sync complete</div>
                 </div>
-                <div className="flex items-center gap-3 opacity-90">
-                  <div>Ln 42, Col 12</div>
-                  <div>UTF-8</div>
-                  <div>Markdown</div>
+                <div className="flex items-center gap-4 opacity-75">
+                  <span>UTF-8</span>
+                  <span>Markdown</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* The Habit Loop Section */}
+        <section className="py-24 px-6 bg-black relative">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row-reverse items-center gap-16">
+              <div className="flex-1 space-y-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/20 bg-purple-500/10 text-[10px] text-purple-400 font-black uppercase tracking-widest italic">
+                  Daily Strategic Anchor
+                </div>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic leading-tight">
+                  The Monolith <br /> Habit.
+                </h2>
+                <p className="text-xl text-zinc-300 leading-relaxed font-medium">
+                  Sustainable engineering requires a single source of truth. Sidelith maintains an immutable <code>.side/MONOLITH.md</code> dashboard that becomes your project&apos;s silent CTO.
+                </p>
+                <div className="space-y-6 pt-4 text-zinc-400">
+                  <div className="flex gap-4">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-white font-bold uppercase tracking-widest text-xs mb-1">Sealed Registry</p>
+                      <p className="text-sm">Automatically hardened to read-only. A trusted, tamper-proof record of architectural logic.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-white font-bold uppercase tracking-widest text-xs mb-1">Provocation Engine</p>
+                      <p className="text-sm">Doesn&apos;t just show stats; it challenges your trajectory with forensic insights.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 w-full p-2 rounded-3xl bg-zinc-900/50 border border-white/5 shadow-2xl">
+                <div className="bg-black rounded-2xl overflow-hidden font-mono text-[10px] text-zinc-500 p-8 border border-white/5">
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                      <div>
+                        <p className="text-white font-black text-sm uppercase italic tracking-tighter"># PRIME_REGISTRY</p>
+                        <p className="text-zinc-500 uppercase tracking-widest text-[8px]">Session ID: <span className="text-zinc-400 font-mono">T3_HYDRATION_FIX</span></p>
+                      </div>
+                      <p className="text-emerald-400 font-black text-[10px] italic">IQ: 362/400</p>
+                    </div>
+                    <div className="space-y-4 pt-2">
+                      <div className="space-y-1.5 font-mono">
+                        <p className="text-zinc-500 uppercase tracking-widest text-[9px]">Trajectory Insight</p>
+                        <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 w-[91%]" />
+                        </div>
+                      </div>
+                      <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-sm">
+                        <p className="text-blue-400 text-[10px] font-black uppercase mb-1 tracking-tighter italic">Fix Drift: T3</p>
+                        <p className="text-zinc-400 leading-relaxed text-[10px]">Registry updated. Hydration mismatch resolved in isomorphic state sync. ROI: 4.2h saved.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* The Sovereign Moats - Technical Depth */}
+        <section className="py-24 px-6 bg-zinc-900/20 border-t border-white/5">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 uppercase italic">Sovereign Moats</h2>
+              <p className="text-zinc-400 max-w-2xl mx-auto uppercase tracking-widest text-[10px] font-black">Technical superiority is our only marketing strategy.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Moat 1 */}
+              <div className="p-8 rounded-3xl bg-black border border-white/5 hover:border-blue-500/20 transition-colors group">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Terminal className="w-6 h-6 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 uppercase italic tracking-tighter">Multi-Pass Tree-Sitter</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  While basic RAG tools guess, Sidelith performantly builds a full <strong>Abstract Syntax Tree</strong> of your project, mapping every import, side-effect, and logical dependency.
+                </p>
+                <div className="bg-zinc-900/50 rounded-lg p-3 border border-white/5 font-mono text-[9px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Parsing Depth</span>
+                    <span className="text-emerald-400">∞ (Recursive)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Cross-Language Docs</span>
+                    <span className="text-white">Isomorphic</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Moat 2 */}
+              <div className="p-8 rounded-3xl bg-black border border-white/5 hover:border-purple-500/20 transition-colors group">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Brain className="w-6 h-6 text-purple-400" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 uppercase italic tracking-tighter">Provocation Engine</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  Our proprietary Strategist doesn&apos;t just answer questions—it <strong>provokes</strong>. It challenges you when implementation complexity exceeds strategic budgets.
+                </p>
+                <div className="bg-purple-500/5 rounded-lg p-3 border border-purple-500/10 font-mono text-[9px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Strategic IQ Scale</span>
+                    <span className="text-purple-400">400_PT_FORENSIC</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Provocation Rate</span>
+                    <span className="text-white">Context-Adaptive</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Moat 3 */}
+              <div className="p-8 rounded-3xl bg-black border border-white/5 hover:border-green-500/20 transition-colors group">
+                <div className="w-12 h-12 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Shield className="w-6 h-6 text-green-400" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 uppercase italic tracking-tighter">Judicial Integrity</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  Sovereignty means control. Our **Judicial Scrubbing** protocol forensically removes PII and sensitive tokens locally before any sanitized metadata is ever synced.
+                </p>
+                <div className="bg-green-500/5 rounded-lg p-3 border border-green-500/10 font-mono text-[9px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Encryption Layer</span>
+                    <span className="text-emerald-400">AES-256 (Local)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Egress Integrity</span>
+                    <span className="text-white">100% Sanitized</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Moat 4 */}
+              <div className="p-8 rounded-3xl bg-black border border-white/5 hover:border-orange-500/20 transition-colors group">
+                <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <RefreshCw className="w-6 h-6 text-orange-400" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 uppercase italic tracking-tighter">Local-First Architecture</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  Sidelith operates on your hardware. Zero dependency on cloud latency. Your Registry is available offline, secured by SQLite encryption.
+                </p>
+                <div className="bg-orange-500/5 rounded-lg p-3 border border-orange-500/10 font-mono text-[9px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Storage Kernel</span>
+                    <span className="text-orange-400">SQLite (Encrypted)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Cloud Dependency</span>
+                    <span className="text-white">Zero (Local Core)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Moat 5 */}
+              <div className="p-8 rounded-3xl bg-black border border-white/5 hover:border-cyan-500/20 transition-colors group">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Zap className="w-6 h-6 text-cyan-400" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 uppercase italic tracking-tighter">Human Leverage Engine</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  By measuring <strong>Outcome / Action</strong> indices, Sidelith provides a quantitative mirror of your effectiveness as a senior engineer.
+                </p>
+                <div className="bg-cyan-500/5 rounded-lg p-3 border border-cyan-500/10 font-mono text-[9px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Leverage Unit</span>
+                    <span className="text-cyan-400">hL (Outcome/Action)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Tracking Mode</span>
+                    <span className="text-white">Passive Passive</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Moat 6 */}
+              <div className="p-8 rounded-3xl bg-black border border-white/5 hover:border-zinc-500/20 transition-colors group">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 uppercase italic tracking-tighter">Sovereign Registry</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  Turn transient chat bubbles and commit messages into a <strong>Persistent Logical Asset</strong> that adds real value to project valuation.
+                </p>
+                <div className="bg-zinc-500/10 rounded-lg p-3 border border-white/5 font-mono text-[9px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Asset Type</span>
+                    <span className="text-white">Logical Registry</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Data Standard</span>
+                    <span className="text-zinc-400">Open-Forensic</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -808,78 +1134,78 @@ export default function Home() {
         </section>
 
         {/* Install Section */}
-        <section id="install" className="py-20 px-6 bg-zinc-900/50">
+        <section id="install" className="py-20 px-6 bg-black">
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-4">Add to your IDE in 2 minutes</h2>
-            <p className="text-zinc-400 text-center mb-12">Works alongside Cursor, Windsurf, Claude Desktop.</p>
+            <h2 className="text-3xl font-bold text-center mb-4 uppercase italic tracking-tighter">Add to your IDE in 2 minutes</h2>
+            <p className="text-zinc-400 text-center mb-12 uppercase tracking-widest text-[10px] font-black opacity-60">Works alongside Cursor, Windsurf, Claude Desktop.</p>
 
             <div className="space-y-4">
-              <div className="rounded-xl border border-white/10 bg-black p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-7 h-7 rounded-full bg-white text-black font-bold flex items-center justify-center text-sm">1</span>
-                  <span className="font-medium">Install</span>
+              <div className="rounded-xl border border-white/5 bg-[#0c0c0e] p-6 group hover:border-emerald-500/20 transition-colors">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="w-8 h-8 rounded-lg bg-white text-black font-black flex items-center justify-center text-xs">01</span>
+                  <span className="font-black uppercase italic tracking-tighter text-white">Initialize Kernel</span>
                 </div>
-                <div className="bg-zinc-900 rounded-lg p-4 font-mono flex items-center justify-between">
-                  <code className="text-green-400 text-lg">pip install cso-ai</code>
-                  <button className="text-zinc-500 hover:text-white"><Copy className="w-5 h-5" /></button>
+                <div className="bg-black rounded-lg p-5 font-mono flex items-center justify-between border border-white/10 group-hover:border-white/20">
+                  <code className="text-emerald-400 text-base">pip install sidelith</code>
+                  <button className="text-zinc-500 hover:text-white transition-colors" onClick={handleCopy}><Copy className="w-4 h-4" /></button>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-black p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-7 h-7 rounded-full bg-white text-black font-bold flex items-center justify-center text-sm">2</span>
-                  <span className="font-medium">Add to MCP config</span>
+              <div className="rounded-xl border border-white/5 bg-[#0c0c0e] p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="w-8 h-8 rounded-lg bg-white text-black font-black flex items-center justify-center text-xs">02</span>
+                  <span className="font-black uppercase italic tracking-tighter text-white">Hydrate MCP Context</span>
                 </div>
-                <div className="bg-zinc-900 rounded-lg p-4 font-mono text-base overflow-x-auto">
-                  <pre className="text-zinc-400">{`{
+                <div className="bg-black rounded-lg p-5 font-mono text-sm overflow-x-auto border border-white/10">
+                  <pre className="text-zinc-500 leading-relaxed">{`{
   "mcpServers": {
-    "cso-ai": {
+    "sidelith": {
       "command": "python",
-      "args": ["-m", "cso_ai.server"]
+      "args": ["-m", "side.server"]
     }
   }
 }`}</pre>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-black p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="w-7 h-7 rounded-full bg-white text-black font-bold flex items-center justify-center text-sm">3</span>
-                  <span className="font-medium">Start asking</span>
+              <div className="rounded-xl border border-white/5 bg-[#0c0c0e] p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="w-8 h-8 rounded-lg bg-white text-black font-black flex items-center justify-center text-xs">03</span>
+                  <span className="font-black uppercase italic tracking-tighter text-white">Execute Forensic Audit</span>
                 </div>
-                <div className="bg-zinc-900 rounded-lg p-4 font-mono">
-                  <code className="text-blue-400 text-lg">&quot;Should I use microservices?&quot;</code>
+                <div className="bg-black rounded-lg p-5 font-mono border border-white/10">
+                  <code className="text-blue-400 text-base italic">&quot;Hey Side, show me the architectural drift in thread T3.&quot;</code>
                 </div>
               </div>
             </div>
 
             <div className="mt-10 text-center">
-              <Link href="/login" className="h-14 px-10 rounded-full bg-white text-black font-semibold hover:bg-zinc-200 transition-all inline-flex items-center gap-2 text-lg">
-                Start Free <ChevronRight className="w-5 h-5" />
+              <Link href="/login" className="h-16 px-12 rounded-full bg-white text-black font-black hover:bg-zinc-200 transition-all inline-flex items-center gap-2 text-xl uppercase italic tracking-tighter shadow-2xl">
+                Claim Your Registry <ChevronRight className="w-6 h-6" />
               </Link>
-              <p className="text-zinc-500 text-sm mt-4">5,000 tokens/month free. No credit card.</p>
+              <p className="text-zinc-500 text-sm mt-4 font-medium italic">Join the Sovereign Layer. No credit card required.</p>
             </div>
           </div>
         </section>
 
         {/* Trust */}
-        <section className="py-16 px-6 border-t border-white/10">
+        < section className="py-16 px-6 border-t border-white/10" >
           <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <p className="text-3xl font-bold text-white mb-1">100%</p>
-              <p className="text-zinc-500">Local-first</p>
+              <p className="text-3xl font-black text-white mb-1">100%</p>
+              <p className="text-zinc-400 font-bold uppercase tracking-tighter text-[10px]">Judicial Sync</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white mb-1">&lt;100ms</p>
-              <p className="text-zinc-500">Cached responses</p>
+              <p className="text-3xl font-black text-white mb-1">&lt;110ms</p>
+              <p className="text-zinc-400 font-bold uppercase tracking-tighter text-[10px]">TTFT (Groq 70B)</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white mb-1">0</p>
-              <p className="text-zinc-500">Data sent to cloud</p>
+              <p className="text-3xl font-black text-white mb-1">LOCAL</p>
+              <p className="text-zinc-400 font-bold uppercase tracking-tighter text-[10px]">First Architecture</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white mb-1">MIT</p>
-              <p className="text-zinc-500">Open source</p>
+              <p className="text-3xl font-black text-white mb-1">MIT</p>
+              <p className="text-zinc-400 font-bold uppercase tracking-tighter text-[10px]">Open Standards</p>
             </div>
           </div>
         </section>
@@ -889,22 +1215,22 @@ export default function Home() {
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-8">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-4 w-4 bg-white rounded-sm" />
-                <span className="font-bold">CSO.ai</span>
+                <div className="h-5 w-5 bg-white rounded-sm" />
+                <span className="font-black text-xl tracking-tighter uppercase italic text-white">Sidelith</span>
               </div>
-              <p className="text-zinc-500 text-sm">The strategic memory layer for your IDE.</p>
+              <p className="text-zinc-400 text-sm font-medium leading-relaxed">The System of Record for Project Context. <br />Professional-grade project trajectory management.</p>
             </div>
-            <div className="flex gap-12 text-sm text-zinc-400">
+            <div className="flex gap-12 text-sm text-zinc-300 font-medium">
               <div className="flex flex-col gap-2">
-                <Link href="#difference" className="hover:text-white">The Difference</Link>
-                <Link href="#examples" className="hover:text-white">Examples</Link>
-                <Link href="#install" className="hover:text-white">Install</Link>
-                <Link href="/pricing" className="hover:text-white">Pricing</Link>
+                <Link href="#forensics" className="hover:text-white transition-colors">Forensics & Strategy</Link>
+                <Link href="#caselogs" className="hover:text-white transition-colors">Case Logs</Link>
+                <Link href="#install" className="hover:text-white transition-colors">Install</Link>
+                <Link href="/pricing" className="hover:text-white transition-colors">Infrastructure</Link>
               </div>
               <div className="flex flex-col gap-2">
-                <Link href="https://github.com/erhan-github/side" className="hover:text-white">GitHub</Link>
-                <Link href="/privacy" className="hover:text-white">Privacy</Link>
-                <Link href="/terms" className="hover:text-white">Terms</Link>
+                <Link href="https://github.com/erhan-github/side" className="hover:text-white transition-colors">GitHub</Link>
+                <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
               </div>
             </div>
           </div>

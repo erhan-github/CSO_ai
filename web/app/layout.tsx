@@ -13,32 +13,32 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Side | Your Strategic Partner.",
-  description: "Upgrade your IDE from a code editor to a Strategic Partner. Native support for Cursor, Windsurf, Claude, and VS Code.",
-  keywords: ["AI strategist", "strategic decisions", "codebase health", "MCP", "Cursor", "developer tools", "technical debt", "architecture", "CTO"],
-  authors: [{ name: "Side" }],
+  title: "Sidelith | Structural Intelligence.",
+  description: "Upgrade your IDE from a code editor to a Strategic Partner with Sidelith. Intelligence infrastructure for modern engineering.",
+  keywords: ["Sidelith", "AI strategist", "strategic decisions", "codebase health", "MCP", "Cursor", "developer tools", "technical debt", "architecture", "CTO"],
+  authors: [{ name: "Sidelith" }],
   openGraph: {
-    title: "CSO.ai | Your CTO on call. 24/7.",
-    description: "Cursor writes code. CSO.ai makes sure you're not wasting months building the wrong thing.",
-    url: "https://cso.ai",
-    siteName: "CSO.ai",
+    title: "Sidelith | Structural Intelligence",
+    description: "Palantir-level intelligence for your software architecture.",
+    url: "https://sidelith.com",
+    siteName: "Sidelith",
     type: "website",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "CSO.ai - Your CTO on call. 24/7.",
+        alt: "Sidelith - Structural Intelligence for Engineers.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CSO.ai | Your CTO on call. 24/7.",
-    description: "Cursor writes code. CSO.ai makes sure you're not wasting months building the wrong thing.",
+    title: "Sidelith | Intelligence Infrastructure.",
+    description: "Cursor writes code. Sidelith makes sure it holds the weight.",
     images: ["/og-image.png"],
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sidelith.com"),
 };
 
 export default function RootLayout({

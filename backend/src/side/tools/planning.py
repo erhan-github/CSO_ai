@@ -10,8 +10,10 @@ from typing import Any
 from side.tools.core import get_auto_intel, get_database
 from side.tools.formatting import format_plan
 from side.utils.errors import handle_tool_errors
-from side.intel.evaluator import StrategicEvaluator
+from side.instrumentation.engine import InstrumentationEngine
+from side.services.billing import BillingService, SystemAction
 from side.utils.paths import get_side_dir, get_repo_root
+from side.services.monolith import generate_monolith
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +50,26 @@ async def handle_check(arguments: dict[str, Any]) -> str:
     if not query:
         return "❌ Please specify the goal or task to check."
     
-    all_plans = db.list_plans()
+    all_plans = db.list_plans(project_id=db.get_project_id())
     matching = next((p for p in all_plans if query.lower() in p['title'].lower()), None)
     
     if not matching:
         return f"❓ Could not find plan matching: \"{query}\""
     
     db.update_plan_status(matching['id'], 'done')
+
+    # INSTRUMENTATION: Record Outcome
+    ie = InstrumentationEngine(db)
+    ie.record_outcome(db.get_project_id(), f"Directive Fulfilled: {matching['title'][:30]}", 2.0)
+    
+    # BILLING: Charge for Directive Completion (Strategic Sync)
+    billing = BillingService(db)
+    pk = db.get_project_id()
+    try:
+        if billing.can_afford(pk, SystemAction.MONOLITH_UPDATE):
+            billing.charge(pk, SystemAction.MONOLITH_UPDATE, "check", {"plan_id": matching['id']})
+    except Exception as e:
+        logger.warning(f"Billing failed for check: {e}")
     
     # LOG COMPLETION
     try:
@@ -75,7 +90,7 @@ async def handle_check(arguments: dict[str, Any]) -> str:
         logger.error(f"Failed to log check activity: {e}")
     
     # Evolve the Monolith
-    _generate_monolith_file(db)
+    await generate_monolith(db)
     
     return f"✅ **Directive Fulfilled:** {matching['title']}\nThe Monolith has evolved."
 
@@ -94,7 +109,8 @@ async def handle_plan(arguments: dict[str, Any]) -> str:
     output = ""
     
     # 1. Auto-Detection via Git
-    pending_goals = db.list_plans(status="active")
+    project_id = db.get_project_id()
+    pending_goals = db.list_plans(project_id=project_id, status="active")
     if pending_goals:
         detected = await auto_intel.detect_goal_completion(pending_goals)
         for d in detected:
@@ -131,7 +147,16 @@ async def handle_plan(arguments: dict[str, Any]) -> str:
         elif any(kw in goal_lower for kw in ["fix", "add", "remove"]): plan_type = "task"
         else: plan_type = "goal"
         
-        db.save_plan(plan_id=goal_id, title=goal_text, plan_type=plan_type, due_date=due_date)
+        db.save_plan(project_id=project_id, plan_id=goal_id, title=goal_text, plan_type=plan_type, due_date=due_date)
+        
+        # BILLING: Charge for New Directive
+        billing = BillingService(db)
+        pk = db.get_project_id()
+        try:
+             if billing.can_afford(pk, SystemAction.MONOLITH_UPDATE):
+                 billing.charge(pk, SystemAction.MONOLITH_UPDATE, "plan", {"plan_id": goal_id})
+        except Exception as e:
+            logger.warning(f"Billing failed for plan: {e}")
         
         # LOG NEW PLAN
         try:
@@ -154,122 +179,20 @@ async def handle_plan(arguments: dict[str, Any]) -> str:
         output += f"📎 **DIRECTIVE LOGGED:** [{plan_type.upper()}] {goal_text}\n"
 
     # 3. Evolve and Seal the Monolith
-    monolith_path = _generate_monolith_file(db)
+    monolith_path = await generate_monolith(db)
     if monolith_path:
         output += f"🏛️ **MONOLITH EVOLVED:** {monolith_path}\n"
     
-    all_plans = db.list_plans()
+    all_plans = db.list_plans(project_id=project_id)
     output += format_plan(all_plans)
     
     return output
 
 
-def _generate_monolith_file(db) -> str | None:
-    """Generate and seal the .side/MONOLITH.md as the definitive strategic anchor."""
-    try:
-        side_dir = get_side_dir()
-        monolith_path = side_dir / MONOLITH_NAME
-        repo_root = get_repo_root()
-        
-        # 1. Unlock for Evolution
-        _soften_monolith(monolith_path)
-        
-        # 2. Gather Intelligence
-        all_plans = db.list_plans()
-        project_id = db.get_project_id(repo_root)
-        profile = db.get_profile(project_id) or {}
-        audit_summary = db.get_audit_summary(project_id)
-        activities = db.get_recent_activities(project_id, limit=100)
-        
-        eval_result = StrategicEvaluator.calculate_iq(
-            profile, all_plans, audit_summary, 
-            project_root=repo_root, 
-            activities=activities
-        )
-        
-        # 3. Render Dashboard
-        lines = [
-            "<!-- 🔐 MONOLITH LOCK: This is a machine-sovereign asset. Hand-editing is prohibited. -->",
-            "",
-            "# ⬛ THE MONOLITH",
-            "> *Strategic Sovereignty // ALPHA-0 [IMMUTABLE]*",
-            "",
-            f"**Temporal Sync**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC",
-            f"**Project Signature**: `{project_id}`",
-            "---",
-            "",
-            "## ⬛ STRATEGIC PULSE",
-            f"- **Sovereignty Grade**: {eval_result['grade']} ({eval_result['label']})",
-            f"- **Strategic IQ**: {eval_result['score']}/{eval_result.get('max_score', 400)}",
-            f"- **Prime Directive**: {eval_result['top_focus']}",
-            "",
-            "### Dimensional Analysis",
-        ]
-        
-        for k, v in eval_result['dimensions'].items():
-            status = "✅" if v >= 32 else "💡" if v >= 28 else "⚠️"
-            lines.append(f"- {status} {k:12}: {v}/40")
-        lines.append("")
+async def _generate_monolith_file(db) -> str | None:
+    """Delegated to service."""
+    return await generate_monolith(db)
 
-        # Directives (Roadmap)
-        lines.append("## 🎯 ACTIVE DIRECTIVES")
-        for ptype in ["objective", "milestone", "goal", "task"]:
-            items = [p for p in all_plans if p.get("type") == ptype]
-            if items:
-                lines.append(f"### {ptype.title()}s")
-                for i in items:
-                    status = "x" if i.get("status") in ["done", "completed"] else " "
-                    due = f" (due: {i['due_date']})" if i.get("due_date") else ""
-                    lines.append(f"- [{status}] {i['title']}{due}")
-                lines.append("")
-
-        # Forensic Snapshot
-        if audit_summary:
-            lines.append("## 🔬 SECURITY MATRIX")
-            colors = {"CRITICAL": "🔴", "WARNING": "🟡", "INFO": "🔵"}
-            for sev, count in audit_summary.items():
-                if count > 0:
-                    lines.append(f"- {colors.get(sev, '⚪')} {sev}: {count}")
-            
-            recent = db.get_recent_audits(project_id, limit=3)
-            if recent:
-                lines.append("\n### Anomaly Feed")
-                for r in recent:
-                    lines.append(f"- **[{r['severity']}]** {r['finding'][:65]}...")
-            lines.append("")
-
-        # Machine Context
-        lines.extend([
-            "---",
-            "## 🧠 NEURAL INTERFACE",
-            "```yaml",
-            "type: side-monolith",
-            f"signature: {project_id}",
-            f"grade: {eval_result['grade']}",
-            f"iq: {eval_result['score']}",
-            f"stack: {list(profile.get('languages', {}).keys())}",
-            f"sync_at: {datetime.now(timezone.utc).isoformat()}",
-            "```",
-            "",
-            "---",
-            "**Transparency Log**",
-        ])
-        
-        activities = db.get_recent_activities(project_id, limit=5)
-        for a in activities:
-            lines.append(f"- `[{a['created_at'][11:16]}]` **{a['tool'].upper()}** (-{a['cost_tokens']} tokens)")
-            
-        monolith_path.write_text("\n".join(lines))
-        
-        # 4. Seal the Monolith
-        _harden_monolith(monolith_path)
-        
-        return str(monolith_path)
-        
-    except Exception as e:
-        logger.warning(f"Monolith Evolution Failed: {e}")
-        return None
-
-def _generate_ledger_file(db) -> str | None:
+async def _generate_ledger_file(db) -> str | None:
     """Legacy alias redirecting to Monolith."""
-    return _generate_monolith_file(db)
+    return await generate_monolith(db)

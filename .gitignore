@@ -5,3 +5,14 @@ node_modules
 .env.local
 backend/.venv
 web/.next
+
+# Local scripts
+scripts/
+
+# Local docs / reports
+docs/SESSION_SUMMARY.md
+docs/STRATEGIC_AUDIT.md
+docs/COMPLETED.md
+
+# Archive
+archive/

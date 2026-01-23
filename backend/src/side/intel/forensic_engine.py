@@ -51,7 +51,7 @@ class ForensicEngine:
             from side.forensic_audit.core import AuditStatus
             
             runner = ForensicAuditRunner(str(self.project_root))
-            audit_summary = runner.run() # Synchronous run
+            audit_summary = await runner.run() # Async run
             
             mapped_findings = []
             for dim_results in audit_summary.results_by_dimension.values():
@@ -60,12 +60,12 @@ class ForensicEngine:
                         # Map AuditResult -> Finding
                         mapped_findings.append(Finding(
                             type=res.check_name,
-                            severity=res.severity.value,
-                            file=res.evidence[0].context if res.evidence else "Project",
+                            severity=res.severity.value.upper(),
+                            file=res.evidence[0].file_path if res.evidence and res.evidence[0].file_path else "Project",
                             line=res.evidence[0].line_number if res.evidence and hasattr(res.evidence[0], 'line_number') else 0,
                             message=f"{res.notes}. {res.recommendation or ''}",
                             action=res.recommendation or "Review finding",
-                            id=res.check_id
+                            metadata={"check_id": res.check_id, "dimension": res.dimension}
                         ))
                         
             # Merge findings
@@ -73,7 +73,6 @@ class ForensicEngine:
             
         except Exception as e:
             # Fallback if runner fails, don't crash the legacy engine
-            import logging
             logging.getLogger(__name__).error(f"Forensic Runner failed: {e}")
         # ---------------------------------------------
         

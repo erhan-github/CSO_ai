@@ -51,7 +51,9 @@ Your objective: Build a $100M+ market-dominant asset with 1/10th the effort, usi
 Profile: {profile}
 Strategic Pivots: {past_decisions}
 $100M Goals: {active_goals}
-Intelligence Feed: {articles}
+Intelligence Feed: (Offline - Forensics Only)
+Deep Memory:
+{memory_context}
 
 ## User's Strategic Inquiry
 {question}
@@ -61,7 +63,7 @@ Intelligence Feed: {articles}
    - Use `⚡ [SHORTCUT]` for high-velocity leverage.
    - Use `🛡️ [MOAT]` for defensive, scalable advantage.
    - Use `🚀 [EXCELLENCE]` for Day-1 dominance improvements.
-2. **STRATEGIC IQ**: Assessment of current maturity (0-160 scale).
+2. **STRATEGIC IQ**: Assessment of current maturity (400-point scale).
 3. **DAY-1 UPGRADE**: Suggest one change that moves the project from "Functional" to "World Class."
 4. **BUILD VS. REUSE**: Identify the exact OSS (e.g. Supabase, Clerk) to kill the grunt work.
 5. **TONE**: Smart, high-velocity, authoritative. We don't build toys; we build empires.
@@ -80,7 +82,8 @@ Intelligence Feed: {articles}
 
 Provide your Strategy:"""
 
-    SCORING_PROMPT = """Rate this article's relevance to the project (0-100).
+    # Removed SCORING_PROMPT per Phase 1 Purge
+    _UNUSED_PROMPT = """Rate this article's relevance to the project (0-100).
 
 ## Project Profile
 {profile}
@@ -108,10 +111,42 @@ IMPORTANT:
 Respond with ONLY valid JSON:
 {{"score": <number>, "reason": "<brief reason>"}}"""
 
+    MONOLITH_PROMPT = """You are the **Side Provocation Engine**. Your goal is to trigger user action.
+    
+    ## Current Status
+    Grade: {grade} ({score}/100) - {label}
+    Forensic Health: {forensic_grade}
+    Strategic Viability: {strategic_grade}
+    Top Focus: {top_focus}
+    
+    ## Deep Dive
+    Dimensions: {dimensions}
+    Security: {security_matrix}
+    Roadmap: {active_plans}
+    
+    ## Task
+    Identify the SINGLE most critical issue dragging down the project Grade.
+    Formulate a "Strategic Insight" that provokes the user to fix it.
+    Provide 2 specific "Side Prompts" that are direct and ready to use.
+    
+    ## Constraints
+    - **Insight**: 1-2 sentences. Punchy. Provocative. (e.g. "Your B grade is fake because you have 0 tests.")
+    - **Actions**: Direct, conversational prompts starting with "Hey Side".
+      - Bad: "Ask Side to scan for secrets"
+      - Good: "Hey Side, scan my entire codebase for hardcoded secrets and give me a fix plan."
+      - Good: "Hey Side, why is my security score so low? Show me the evidence."
+    
+    ## Output Format (JSON Only)
+    {{
+      "insight": "Your security score is critical. I found 5 hardcoded secrets that expose you to immediate risk.",
+      "actions": [
+        "Hey Side, scan the entire codebase for hardcoded secrets.",
+        "Hey Side, explain the security implications of my auth setup."
+      ]
+    }}"""
 
 
-
-    def __init__(self, db: Optional["SimplifiedDatabase"] = None, project_path: Optional[Path] = None, allow_fallbacks: bool = True) -> None:
+    def __init__(self, db: Optional["SimplifiedDatabase"] = None, project_path: Optional[Path] = None, allow_fallbacks: bool = True, memory_retrieval: Optional[Any] = None) -> None:
         """Initialize the Strategist."""
         from side.storage.simple_db import SimplifiedDatabase
         self.llm = LLMClient()
@@ -120,6 +155,7 @@ Respond with ONLY valid JSON:
         self.project_id = SimplifiedDatabase.get_project_id(project_path) if project_path else "unknown"
         self.compressor = ContextCompressor()
         self.allow_fallbacks = allow_fallbacks
+        self.memory = memory_retrieval
 
     @property
     def is_available(self) -> bool:
@@ -185,7 +221,6 @@ Respond with ONLY valid JSON:
         self,
         question: str,
         profile: dict[str, Any],
-        articles: list[dict[str, Any]] | None = None,
         recent_deltas: list[dict[str, Any]] | None = None,
     ) -> str:
         """
@@ -228,19 +263,9 @@ Respond with ONLY valid JSON:
         changes_text = self._format_recent_changes(recent_deltas)
 
         # Format articles with Diversity awareness
-        articles_text = "No intelligence available."
-        if articles:
-            lines = []
-            for a in articles[:10]: # Process top 10 diverse items
-                domain = a.get("domain", "tech").lower()
-                emoji = "📝"
-                if "legal" in domain: emoji = "⚖️"
-                elif "invest" in domain: emoji = "💰"
-                
-                title = a.get("title", "Untitled")
-                desc = a.get("description", "") or ""
-                lines.append(f"- {emoji} [{domain.upper()}] {title}: {desc[:150]}...")
-            articles_text = "\n".join(lines)
+        # [Forensics] Articles Removed for Palantir-Level Focus
+        # articles_text = "No intelligence available." 
+
 
         # Extract domain for strict relevance check
         # Check root 'domain' first (from Auto-Detection), then fallback to 'business' config
@@ -249,6 +274,16 @@ Respond with ONLY valid JSON:
             biz = profile.get("business", {})
             domain = biz.get("domain", "General Software")
         
+        # [Memory - The Read Path]
+        # Retrieve persistent memory context if available
+        memory_context = ""
+        if self.memory:
+            try:
+                # We fetch relevant memory categories based on the user's question
+                memory_context = await self.memory.retrieve(question, self.project_id)
+            except Exception as e:
+                logger.warning(f"Memory Retrieval Failed: {e}")
+
         # [Hyper-Ralph] Scenario 15: Use ContextCompressor to prevent token saturation
         context = await self.compressor.compress(
             question=question,
@@ -256,7 +291,7 @@ Respond with ONLY valid JSON:
             decisions=profile.get("_decisions", []),
             goals=profile.get("_active_goals", []),
             learnings=profile.get("_learnings", []),
-            articles=articles or [],
+            articles=[],
             recent_changes=changes_text
         )
 
@@ -266,7 +301,9 @@ Respond with ONLY valid JSON:
             key_learnings=context["key_learnings"],
             active_goals=context["active_goals"],
             recent_changes=context["recent_changes"],
-            articles=context["articles"],
+            memory_context=memory_context,
+
+            # articles=context["articles"], # Removed
             question=context["question"],
             domain=domain,
         )
@@ -306,112 +343,9 @@ Respond with ONLY valid JSON:
             )
         return result
 
-    async def batch_score_articles(
-        self,
-        articles_data: list[dict[str, Any]],
-        profile: dict[str, Any],
-    ) -> list[dict[str, Any]]:
-        """
-        [Hyper-Ralph] Scenario 36 Fix: Batch Article Scoring.
-        Processes up to 10 articles in a single request to save tokens and time.
-        """
-        if not articles_data:
-            return []
 
-        # We take only a slice to avoid context overflow
-        batch = articles_data[:10]
-        
-        # Prepare content string
-        articles_str = ""
-        for i, a in enumerate(batch):
-            articles_str += f"\nArticle {i+1}:\nTitle: {a.get('title')}\nURL: {a.get('url')}\nDescription: {a.get('description')}\n"
 
-        prompt = f"""Rate these articles' relevance to the project (0-100).
-        
-        ## Project Profile
-        {self._format_profile(profile)}
-        
-        ## Articles to Score
-        {articles_str}
-        
-        {self.SCORING_PROMPT}"""
-        
-        result = await self._call_groq(prompt, model=self.FAST_MODEL)
-        if not result:
-            return [{"url": a["url"], "score": 50, "reason": "No response"} for a in batch]
-        
-        try:
-            # Extract JSON block
-            import re
-            match = re.search(r"(\[.*\])", result, re.DOTALL)
-            if match:
-                scores = json.loads(match.group(1))
-                return scores
-            return [{"url": a["url"], "score": 50, "reason": "Invalid JSON"} for a in batch]
-        except Exception as e:
-            logger.error(f"Failed to parse batch scores: {e}")
-            return [{"url": a["url"], "score": 40, "reason": "Parse error"} for a in batch]
 
-    async def score_article(
-        self,
-        title: str,
-        url: str,
-        description: str | None,
-        profile: dict[str, Any],
-    ) -> tuple[float, str]:
-        """
-        Score an article's relevance using LLM.
-
-        Uses the FAST_MODEL (8B) for speed on high-volume scoring.
-        Includes current focus areas from git activity for better relevance.
-
-        Args:
-            title: Article title
-            url: Article URL
-            description: Article description
-            profile: Codebase profile
-
-        Returns:
-            Tuple of (score 0-100, reasoning)
-        """
-        if not self.is_available:
-            return self._heuristic_score(title, description, profile)
-
-        profile_text = self._format_profile(profile)
-        focus_areas = self._format_focus_areas(profile)
-
-        prompt = self.SCORING_PROMPT.format(
-            profile=profile_text,
-            focus_areas=focus_areas,
-            title=title,
-            url=url,
-            description=description or "No description",
-        )
-
-        # Use FAST_MODEL for high-volume scoring
-        result = await self._call_groq(
-            prompt,
-            model=self.FAST_MODEL,
-            max_tokens=100,
-            temperature=0.3,
-        )
-        if result:
-            try:
-                # Clean up response - sometimes LLM adds extra text
-                result = result.strip()
-                # Handle markdown code blocks
-                if "```" in result:
-                    # Extract JSON from code block
-                    start = result.find("{")
-                    end = result.rfind("}") + 1
-                    if start != -1 and end > start:
-                        result = result[start:end]
-                data = json.loads(result)
-                return float(data.get("score", 50)), data.get("reason", "")
-            except (json.JSONDecodeError, ValueError):
-                pass
-
-        return self._heuristic_score(title, description, profile)
 
     def _format_profile(self, profile: dict[str, Any]) -> str:
         """Format profile for LLM prompts (enriched version)."""
@@ -554,65 +488,7 @@ To activate the 'Smart Vibe Coder' Engine:
 
 We don't build MVPs; we build the future. Ask me again!"""
 
-    def _heuristic_score(
-        self,
-        title: str,
-        description: str | None,
-        profile: dict[str, Any],
-    ) -> tuple[float, str]:
-        """Score article using heuristics when LLM unavailable."""
-        score = 30.0
-        reasons = []
 
-        text = f"{title} {description or ''}".lower()
-
-        # Check for current focus areas (highest priority!)
-        tech = profile.get("technical", {})
-        health = tech.get("health_signals", {})
-        git = health.get("git", {})
-        focus_areas = git.get("current_focus_areas", [])
-
-        for area in focus_areas:
-            if area.lower() in text:
-                score += 30  # Big boost for current focus
-                reasons.append(f"matches current focus: {area}")
-                break
-
-        # Check for stack matches
-        lang = tech.get("primary_language", "").lower()
-        if lang and lang in text:
-            score += 15  # Reduced from 20 - Language alone isn't enough
-            reasons.append(f"mentions {lang}")
-
-        frameworks = tech.get("frameworks", [])
-        for fw in frameworks:
-            if fw.lower() in text:
-                score += 15
-                reasons.append(f"about {fw}")
-                break
-
-        # Domain match - HIGHER PRIORITY
-        biz = profile.get("business", {})
-        domain = biz.get("domain", "").lower()
-        if domain:
-            domain_words = domain.replace("/", " ").replace("-", " ").split()
-            for word in domain_words:
-                if len(word) > 3 and word in text:
-                    score += 35  # Increased from 15 - Domain is critical
-                    reasons.append(f"relevant to {domain}")
-                    break
-
-        # Integration matches
-        integrations = biz.get("integrations", [])
-        for integration in integrations:
-            if integration.lower() in text:
-                score += 20
-                reasons.append(f"about {integration}")
-                break
-
-        score = min(100.0, score)
-        reason = ", ".join(reasons) if reasons else "General tech content"
-        return score, reason
 
     # =========================================================================
     # GUARD FUNCTIONALITY (Merged from intel/guard.py)
@@ -636,6 +512,64 @@ We don't build MVPs; we build the future. Ask me again!"""
     RESPONSE:
     NO_CONFLICT or CONFLICT: [decision_id]: [explanation]
     """
+
+    async def handle_monolith_evolution(
+        self,
+        score: int,
+        grade: str,
+        label: str,
+        forensic_grade: str,
+        strategic_grade: str,
+        top_focus: str,
+        dimensions: dict,
+        security_matrix: dict,
+        active_plans: list
+    ) -> dict:
+        """
+        Synthesize forensic data into a strategic insight for the Monolith.
+        """
+        prompt = self.MONOLITH_PROMPT.format(
+            grade=grade,
+            score=score,
+            label=label,
+            forensic_grade=forensic_grade,
+            strategic_grade=strategic_grade,
+            top_focus=top_focus,
+            dimensions=dimensions,
+            security_matrix=security_matrix,
+            active_plans=[p['title'] for p in active_plans]
+        )
+        
+        try:
+            response = await self._call_groq(
+                prompt,
+                model=self.SMART_MODEL,
+                temperature=0.3, # Low temp for consistency
+                max_tokens=500
+            )
+            
+            if not response:
+                logger.warning("No response from Strategist (LLM unavailable).")
+                return {
+                    "insight": "Strategic synthesis offline. LLM unavailable.",
+                    "actions": ["Set GROQ_API_KEY to enable insights."]
+                }
+
+            # Extract JSON from response
+            import re
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return {
+                "insight": f"Strategic pulse stable. Focus area: {top_focus}.",
+                "actions": ["Run a full system audit.", "Analyze current velocity."]
+            }
+        except Exception as e:
+            logger.error(f"Failed to evolve monolith narrative: {e}")
+            return {
+                "insight": "Strategic synthesis offline. Falling back to heuristic mode.",
+                "actions": ["Check system logs.", "Run diagnostics."]
+            }
 
     async def check_decision_conflict(
         self, query: str, decisions: list[dict[str, Any]]

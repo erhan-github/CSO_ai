@@ -116,8 +116,8 @@ export default function SecurityPage() {
                     <p className="text-slate-400 mb-6">
                         We respond within 24 hours.
                     </p>
-                    <a href="mailto:security@side.ai" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-lg transition font-medium">
-                        security@side.ai
+                    <a href="mailto:security@sidemcp.com" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-lg transition font-medium">
+                        security@sidemcp.com
                     </a>
                 </div>
             </main>
@@ -125,7 +125,7 @@ export default function SecurityPage() {
             {/* Footer */}
             <footer className="border-t border-slate-700/50 py-8 mt-16">
                 <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-slate-400 text-sm">
-                    <span>© 2026 Side AI. All rights reserved.</span>
+                    <span>© 2026 Side. All rights reserved.</span>
                     <div className="flex gap-6">
                         <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
                         <Link href="/terms" className="hover:text-white transition">Terms</Link>

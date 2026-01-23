@@ -46,8 +46,6 @@ class SecurityProbe:
         (r"-----BEGIN\s+OPENSSH\s+PRIVATE\s+KEY-----", "SSH Private Key"),
         
         # Service-specific
-        (r"sk_live_[0-9a-zA-Z]{24,}", "Stripe Live Key"),
-        (r"sk_test_[0-9a-zA-Z]{24,}", "Stripe Test Key"),
         (r"ghp_[0-9a-zA-Z]{36}", "GitHub Token"),
         (r"gho_[0-9a-zA-Z]{36}", "GitHub OAuth Token"),
         (r"github_pat_[0-9a-zA-Z_]{22,}", "GitHub PAT"),
@@ -86,7 +84,7 @@ class SecurityProbe:
         (r"document\.write\s*\(", "document.write usage"),
     ]
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         """Run all security checks."""
         results = []
         
@@ -682,8 +680,9 @@ class SecurityProbe:
         has_hashing = False
         unsafe_patterns = [
             (r"password\s*==", "Direct password comparison"),
-            (r"md5\s*\(", "MD5 for passwords (insecure)"),
-            (r"sha1\s*\(", "SHA1 for passwords (insecure)"),
+            # Only flag MD5/SHA1 if 'password' or 'auth' is near (simple heuristic)
+            (r"(?=.*(password|auth|credential|secret))(?=.*md5\s*\()", "MD5 used for password/auth (insecure)"),
+            (r"(?=.*(password|auth|credential|secret))(?=.*sha1\s*\()", "SHA1 used for password/auth (insecure)"),
         ]
         safe_patterns = ['bcrypt', 'argon2', 'scrypt', 'pbkdf2']
         
@@ -691,7 +690,14 @@ class SecurityProbe:
             if not file_path.endswith('.py'):
                 continue
             
+            if 'test' in file_path.lower() or 'security.py' in file_path:
+                continue
+
             try:
+                # DEBUG PRINT
+                if 'vulnerable' in file_path:
+                    # print(f"DEBUG: SecurityProbe scanning {file_path}") # Comment out debug
+                    pass
                 content = Path(file_path).read_text()
                 
                 # Check for safe hashing
@@ -705,7 +711,8 @@ class SecurityProbe:
                             evidence.append(AuditEvidence(
                                 description=desc,
                                 file_path=file_path,
-                                line_number=line_idx
+                                line_number=line_idx,
+                                context=line.strip()[:80]
                             ))
             except Exception:
                 continue

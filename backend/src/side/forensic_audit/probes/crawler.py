@@ -33,7 +33,7 @@ class CrawlerProbe:
     MAX_DEPTH = 3
     TIMEOUT = 5.0
     
-    def _crawl(self, start_url: str) -> Dict[str, Dict]:
+    async def _crawl(self, start_url: str) -> Dict[str, Dict]:
         """
         Crawl website and analyze content.
         Returns: {url: {'status': int, 'links': [], 'title': str, 'has_mock_text': bool, 'placeholder_links': int, 'is_duplicate_home': bool}}
@@ -46,10 +46,10 @@ class CrawlerProbe:
         home_content_len = 0
         home_title = ""
         
-        with httpx.Client(timeout=self.TIMEOUT, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=self.TIMEOUT, follow_redirects=True) as client:
             try:
                 # Initial check & Baseline
-                resp = client.get(start_url)
+                resp = await client.get(start_url)
                 if resp.status_code >= 400:
                     return {start_url: {'status': resp.status_code}}
                 
@@ -68,7 +68,7 @@ class CrawlerProbe:
                     continue
                 
                 try:
-                    resp = client.get(url)
+                    resp = await client.get(url)
                     
                     # Detect Soft 404s / Redirects
                     final_url = str(resp.url)
@@ -225,7 +225,7 @@ class CrawlerProbe:
         # Unique and formatted
         return [f"http://localhost:{p}" for p in set(ports)]
 
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         """Run the crawler (Synchronous)."""
         # Smart detect ports
         targets = self._detect_port(context.project_root)
@@ -261,7 +261,7 @@ class CrawlerProbe:
                 # Crawl all seeds
                 for url in seed_urls:
                     # Merge results
-                    visited_page = self._crawl(url)
+                    visited_page = await self._crawl(url)
                     results.update(visited_page)
 
         except Exception as e:

@@ -9,12 +9,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+PROJECT_NAME = "sidelith"
+
+
 @dataclass
 class SideConfig:
     """Configuration for sideMCP."""
 
     # Data storage (local fallback)
-    data_dir: Path = field(default_factory=lambda: Path.home() / ".side-mcp")
+    data_dir: Path = field(default_factory=lambda: Path.home() / f".{PROJECT_NAME}")
     db_name: str = "data.db"
 
     # Supabase Configuration (cloud storage with tenant isolation)

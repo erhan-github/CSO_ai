@@ -1,12 +1,12 @@
-# CSO.ai API Reference
+# Side API Reference
 
-Complete reference for all CSO.ai MCP tools.
+Complete reference for all Side MCP tools.
 
 ---
 
 ## Tools Overview
 
-CSO.ai provides 3 core tools, each designed for a specific use case:
+Side provides 3 core tools, each designed for a specific use case:
 
 | Tool | Purpose | Speed | Cache |
 |------|---------|-------|-------|
@@ -43,7 +43,7 @@ Formatted string with:
 ```
 User: "What should I read?"
 
-CSO: 📰 Top Articles for Your Stack (Python + FastAPI)
+Side: 📰 Top Articles for Your Stack (Python + FastAPI)
 
      1. [95] ██████████ FastAPI Auth Best Practices
         💡 Directly relevant to your API architecture
@@ -57,7 +57,7 @@ CSO: 📰 Top Articles for Your Stack (Python + FastAPI)
 ```
 User: "What should I read? (refresh: true)"
 
-CSO: 📰 Top Articles for Your Stack (Python + FastAPI)
+Side: 📰 Top Articles for Your Stack (Python + FastAPI)
      🔄 Fetching fresh articles...
 
      [Articles...]
@@ -117,7 +117,7 @@ Formatted string with:
 ```
 User: "Is this worth reading? https://fastapi.tiangolo.com/auth"
 
-CSO: 🎯 Relevance Score: 92/100
+Side: 🎯 Relevance Score: 92/100
 
      ✅ HIGHLY RECOMMENDED
 
@@ -136,7 +136,7 @@ CSO: 🎯 Relevance Score: 92/100
 ```
 User: "Is this worth reading? https://react-tutorial.com"
 
-CSO: 🎯 Relevance Score: 15/100
+Side: 🎯 Relevance Score: 15/100
 
      ⏭️ SKIP THIS ONE
 
@@ -187,7 +187,7 @@ Formatted string with:
 ```
 User: "What should I focus on?"
 
-CSO: 🎯 Strategic Focus (Python + FastAPI)
+Side: 🎯 Strategic Focus (Python + FastAPI)
 
      📊 Recent Activity: 15 commits in last 7 days
      🔍 Working on: Authentication
@@ -212,7 +212,7 @@ CSO: 🎯 Strategic Focus (Python + FastAPI)
 ```
 User: "What should I focus on? I'm planning to add OAuth2"
 
-CSO: 🎯 Strategic Focus (Python + FastAPI)
+Side: 🎯 Strategic Focus (Python + FastAPI)
 
      📊 Context: Planning OAuth2 implementation
 

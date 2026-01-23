@@ -284,13 +284,13 @@ async def handle_strategy(arguments: dict[str, Any]) -> str:
     )
 
     # ─────────────────────────────────────────────────────────────
-    # TRIGGER LEDGER UPDATE (Mirror System)
+    # TRIGGER MONOLITH EVOLUTION (Mirror System)
     # ─────────────────────────────────────────────────────────────
     try:
-        from side.tools.planning import _generate_ledger_file
-        _generate_ledger_file(db)
+        from side.tools.planning import _generate_monolith_file
+        await _generate_monolith_file(db)
     except Exception as e:
-        logger.warning(f"Failed to refresh ledger: {e}")
+        logger.warning(f"Failed to evolve Monolith: {e}")
 
     # ─────────────────────────────────────────────────────────────
     # LOG ACTIVITY (TRANSPARENCY LEDGER)

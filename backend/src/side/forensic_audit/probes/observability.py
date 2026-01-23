@@ -16,7 +16,7 @@ class ObservabilityProbe:
     tier = Tier.FAST
     dimension = "Observability"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_structured_logging(context),
             self._check_log_levels(context),

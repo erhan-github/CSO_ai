@@ -41,7 +41,7 @@ async def retrieve_trending_signals(
     # Extract tech terms from query
     tech_terms = [
         'redis', 'postgres', 'mongodb', 'supabase', 'firebase',
-        'auth', 'authentication', 'stripe', 'payment',
+        'auth', 'authentication', 'lemonsqueezy', 'payment',
         'react', 'vue', 'nextjs', 'typescript', 'python', 'rust',
         'llm', 'gpt', 'reasoning', 'benchmark', 'ai', 'ml'
     ]

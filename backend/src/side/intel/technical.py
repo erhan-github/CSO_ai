@@ -31,6 +31,27 @@ class TechnicalIntel:
 class TechnicalAnalyzer:
     """Facade for modular analyzers."""
     
+    SKIP_DIRS = {'.git', 'node_modules', '.venv', '__pycache__', 'dist', 'build', 'coverage', '.next', '.idea', '.vscode'}
+    
+    LANGUAGE_MAP = {
+        '.py': 'Python',
+        '.ts': 'TypeScript',
+        '.tsx': 'TypeScript',
+        '.js': 'JavaScript',
+        '.jsx': 'JavaScript',
+        '.go': 'Go',
+        '.rs': 'Rust',
+        '.java': 'Java',
+        '.c': 'C',
+        '.cpp': 'C++',
+        '.rb': 'Ruby',
+        '.php': 'PHP',
+        '.html': 'HTML',
+        '.css': 'CSS',
+        '.sql': 'SQL',
+        '.md': 'Markdown'
+    }
+    
     def __init__(self):
         self.git = GitAnalyzer()
         self.deps = DependencyAnalyzer()
@@ -40,7 +61,7 @@ class TechnicalAnalyzer:
         root = Path(path).resolve()
         # Single-pass file collection
         all_files = list(root.rglob('*'))
-        all_files = [f for f in all_files if f.is_file() and not any(p in f.parts for p in {'.git', 'node_modules', '.venv', '__pycache__', 'dist', 'build'})]
+        all_files = [f for f in all_files if f.is_file() and not any(p in f.parts for p in self.SKIP_DIRS)]
         
         # Parallel delegation
         git_res = await self.git.analyze(root, all_files)

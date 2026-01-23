@@ -1,10 +1,10 @@
-# CSO.ai Strategic Product Roadmap
+# Side Strategic Product Roadmap
 
 ## 🎯 Vision: The Most Addictive Developer Tool
 
-**Mission**: Make CSO.ai so valuable that developers can't imagine coding without it.
+**Mission**: Make Side so valuable that developers can't imagine coding without it.
 
-**Target**: 10M+ developers using CSO.ai as their primary intelligence layer.
+**Target**: 10M+ developers using Side as their primary intelligence layer.
 
 ---
 
@@ -540,7 +540,7 @@ that might cause issues 🤔
 ## 🎯 Success Metrics
 
 ### North Star Metric
-**Daily Active Users (DAU)** - Developers who use CSO.ai daily
+**Daily Active Users (DAU)** - Developers who use Side daily
 
 ### Supporting Metrics
 
@@ -638,7 +638,7 @@ that might cause issues 🤔
 
 ## 🔮 Future Vision (12 Months)
 
-**CSO.ai becomes**:
+**Side becomes**:
 - The default intelligence layer for developers
 - Essential as GitHub Copilot
 - Used by 1M+ developers

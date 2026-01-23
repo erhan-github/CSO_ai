@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CSO.ai Tool Tester - Test tools without restarting Cursor.
+Side Tool Tester - Test tools without restarting Cursor.
 
 Usage:
     python scripts/test_tools.py ping
@@ -68,7 +68,7 @@ async def main():
         else:
             i += 1
 
-    print(f"🧠 CSO.ai Tool Tester")
+    print(f"🧠 Side Tool Tester")
     print(f"{'─' * 50}")
     print(f"Tool: {tool_name}")
     print(f"Args: {args}")

@@ -1,49 +1,79 @@
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
     try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const action = searchParams.get('action') || 'alerts';
+        const projectId = searchParams.get('project_id');
 
-        // Path to the Python MCP server
-        const projectRoot = process.cwd();
-        // Updated to point to backend folder in monorepo
-        const pythonPath = `${projectRoot}/../backend/.venv/bin/python`;
-
-        let result;
+        let data;
+        let error;
 
         switch (action) {
             case 'alerts':
-                // Get strategic alerts
-                result = await execAsync(
-                    `${pythonPath} -c "from cso_ai.intel.forensic_engine import ForensicEngine; from cso_ai.intel.intelligence_store import IntelligenceStore; from cso_ai.storage.simple_db import SimplifiedDatabase; from pathlib import Path; import json; root = Path('${projectRoot}/../backend'); engine = ForensicEngine(str(root)); db = SimplifiedDatabase(str(root / '.cso' / 'local.db')); store = IntelligenceStore(db); project_id = SimplifiedDatabase.get_project_id(root); findings = engine.scan(); store.store_findings(project_id, findings); alerts = store.get_active_findings(project_id); print(json.dumps(alerts))"`
-                );
-                return NextResponse.json(JSON.parse(result.stdout));
+                let alertsQuery = supabase
+                    .from('findings')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('is_resolved', false);
 
-            case 'iq':
-                // Get Strategic IQ
-                result = await execAsync(
-                    `${pythonPath} -c "from cso_ai.intel.intelligence_store import IntelligenceStore; from cso_ai.storage.simple_db import SimplifiedDatabase; from pathlib import Path; import json; root = Path('${projectRoot}/../backend'); db = SimplifiedDatabase(str(root / '.cso' / 'local.db')); store = IntelligenceStore(db); project_id = SimplifiedDatabase.get_project_id(root); score = store.get_strategic_iq(project_id); stats = store.get_finding_stats(project_id); print(json.dumps({'score': score, 'stats': stats}))"`
-                );
-                return NextResponse.json(JSON.parse(result.stdout));
+                if (projectId) {
+                    alertsQuery = alertsQuery.eq('project_id', projectId);
+                }
+
+                ({ data, error } = await alertsQuery);
+                if (error) throw error;
+                return NextResponse.json(data);
 
             case 'activities':
-                // Get recent activities
-                result = await execAsync(
-                    `${pythonPath} -c "from cso_ai.storage.simple_db import SimplifiedDatabase; from pathlib import Path; import json; root = Path('${projectRoot}/../backend'); db = SimplifiedDatabase(str(root / '.cso' / 'local.db')); project_id = SimplifiedDatabase.get_project_id(root); logs = db.get_recent_activities(project_id, limit=30); print(json.dumps(logs))"`
-                );
-                return NextResponse.json(JSON.parse(result.stdout));
+                let activitiesQuery = supabase
+                    .from('activities')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (projectId) {
+                    activitiesQuery = activitiesQuery.eq('project_id', projectId);
+                }
+
+                ({ data, error } = await activitiesQuery);
+                if (error) throw error;
+                return NextResponse.json(data);
 
             case 'profile':
-                // Get user profile (balance + tier)
-                result = await execAsync(
-                    `${pythonPath} -c "from cso_ai.storage.simple_db import SimplifiedDatabase; from pathlib import Path; import json; root = Path('${projectRoot}/../backend'); db = SimplifiedDatabase(str(root / '.cso' / 'local.db')); project_id = SimplifiedDatabase.get_project_id(root); profile = db.get_profile(project_id); balance = db.get_token_balance(); print(json.dumps({'tier': profile.get('tier', 'free') if profile else 'free', 'balance': balance}))"`
-                );
-                return NextResponse.json(JSON.parse(result.stdout));
+                ({ data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single());
+
+                if (error) throw error;
+                return NextResponse.json({
+                    tier: data?.tier || 'free',
+                    balance: (data?.tokens_monthly || 0) - (data?.tokens_used || 0)
+                });
+
+            case 'iq':
+                // Simple IQ calculation: 100 - (active findings * weight)
+                const { count, error: countError } = await supabase
+                    .from('findings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id)
+                    .eq('is_resolved', false);
+
+                if (countError) throw countError;
+
+                const score = Math.max(0, 100 - (count || 0) * 5);
+                return NextResponse.json({ score, findings_count: count });
 
             default:
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -59,17 +89,24 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await request.json();
         const { action, finding_id } = body;
 
         if (action === 'resolve' && finding_id) {
-            const projectRoot = process.cwd();
-            const pythonPath = `${projectRoot}/../backend/.venv/bin/python`;
+            const { error } = await supabase
+                .from('findings')
+                .update({ is_resolved: true, resolved_at: new Date().toISOString() })
+                .eq('id', finding_id)
+                .eq('user_id', user.id);
 
-            await execAsync(
-                `${pythonPath} -c "from cso_ai.intel.intelligence_store import IntelligenceStore; from cso_ai.storage.simple_db import SimplifiedDatabase; from pathlib import Path; root = Path('${projectRoot}/../backend'); db = SimplifiedDatabase(str(root / '.cso' / 'local.db')); store = IntelligenceStore(db); store.resolve_finding('${finding_id}')"`
-            );
-
+            if (error) throw error;
             return NextResponse.json({ success: true });
         }
 

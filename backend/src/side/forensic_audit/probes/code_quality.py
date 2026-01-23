@@ -24,7 +24,7 @@ class CodeQualityProbe:
     tier = Tier.FAST
     dimension = "Code Quality"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         """Run all code quality checks."""
         return [
             self._check_bare_except(context),
@@ -34,6 +34,8 @@ class CodeQualityProbe:
             self._check_docstring_coverage(context),
             self._check_type_annotations(context),
             self._check_complexity(context),
+            self._check_cognitive_complexity(context),
+            self._check_maintainability_index(context),
             self._check_dead_code(context),
             # Architecture Intelligence
             self._check_pattern_duplication(context),
@@ -293,6 +295,142 @@ class CodeQualityProbe:
             severity=Severity.MEDIUM,
             evidence=evidence[:10],
             recommendation=f"Keep cyclomatic complexity under {max_complexity}"
+        )
+
+    def _check_cognitive_complexity(self, context: ProbeContext) -> AuditResult:
+        """
+        Check for Cognitive Complexity (Nesting Depth).
+        Unlike Cyclomatic (branches), this penalizes deep nesting.
+        """
+        evidence = []
+        max_cognitive = 15
+        
+        for file_path in context.files:
+            if not file_path.endswith('.py'):
+                continue
+                
+            try:
+                content = Path(file_path).read_text()
+                tree = ast.parse(content)
+                
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        # Calculate nesting score
+                        score = 0
+                        # visitor pattern to track depth
+                        for child in ast.walk(node):
+                            # Simplification: Count indentation of 'if', 'for', 'while' lines?
+                            # AST approach needs a custom visitor. 
+                            # Let's use a heuristic: deeply nested nodes get penalized.
+                            pass
+                        
+                        # Better Heuristic: Regex Indentation Check within function body
+                        # Find the lines of this function
+                        func_lines = content.splitlines()[node.lineno-1:getattr(node, 'end_lineno', node.lineno)]
+                        
+                        # Filter out empty/comment lines
+                        code_lines = [l for l in func_lines if l.strip() and not l.strip().startswith('#')]
+                        
+                        if not code_lines: continue
+                        
+                        # Base indentation
+                        base_indent = len(code_lines[0]) - len(code_lines[0].lstrip())
+                        
+                        current_score = 0
+                        for line in code_lines:
+                            indent = len(line) - len(line.lstrip())
+                            # Every 4 spaces beyond base = +1 nesting level
+                            # 4 spaces = 1 level. 
+                            # Nesting level 0 (base) -> 0 points
+                            # Nesting level 1 -> 1 point
+                            # Nesting level 2 -> 2 points
+                            
+                            nesting_level = (indent - base_indent) // 4
+                            if nesting_level > 1:
+                                current_score += (nesting_level - 1) 
+                                
+                            # keywords add +1
+                            if any(k in line for k in ['if ', 'for ', 'while ', 'except ']):
+                                current_score += 1
+                        
+                        if current_score > max_cognitive:
+                            evidence.append(AuditEvidence(
+                                description=f"Function '{node.name}' has Cognitive Complexity ~{current_score} (max: {max_cognitive})",
+                                file_path=file_path,
+                                line_number=node.lineno,
+                                suggested_fix="Flatten nested logic (guard clauses)"
+                            ))
+
+            except Exception:
+                continue
+        
+        return AuditResult(
+            check_id="CQ-014",
+            check_name="Cognitive Complexity (Nesting)",
+            dimension=self.dimension,
+            status=AuditStatus.PASS if not evidence else AuditStatus.WARN,
+            severity=Severity.HIGH,
+            evidence=evidence[:10],
+            recommendation="Refactor deeply nested code (arrow pattern) into flat code"
+        )
+
+    def _check_maintainability_index(self, context: ProbeContext) -> AuditResult:
+        """
+        Calculate Maintainability Index (MI) approx.
+        MI = 171 - 5.2*ln(HV) - 0.23*Cyclomatic - 16.2*ln(LOC)
+        """
+        evidence = []
+        min_mi = 65 # Below 65 is hard to maintain
+        
+        for file_path in context.files:
+            if not file_path.endswith('.py'):
+                continue
+                
+            try:
+                content = Path(file_path).read_text()
+                loc = len([l for l in content.splitlines() if l.strip()])
+                if loc == 0: continue
+                
+                # Halstead Volume (Approximate)
+                # Count operators and operands
+                operators = len(re.findall(r'[\+\-\*/=\(\)\{\}\[\]\.,]', content))
+                operands = len(re.findall(r'\b\w+\b', content))
+                N = operators + operands
+                n = 20 # vocab size proxy
+                
+                import math
+                import functools
+                
+                if N == 0: continue
+                
+                # Volume
+                V = N * math.log2(n)
+                
+                # Cyclomatic (simple grep count)
+                CC = len(re.findall(r'\b(if|for|while|and|or|except)\b', content)) + 1
+                
+                # MI Formula
+                mi = 171 - 5.2 * math.log(V) - 0.23 * CC - 16.2 * math.log(loc)
+                mi = max(0, min(100, mi)) # Clamp 0-100
+                
+                if mi < min_mi:
+                     evidence.append(AuditEvidence(
+                        description=f"Maintainability Index is {int(mi)}/100 (Threshold: {min_mi})",
+                        file_path=file_path,
+                        suggested_fix="Break file into smaller modules"
+                    ))
+                    
+            except Exception:
+                continue
+
+        return AuditResult(
+            check_id="CQ-015",
+            check_name="Maintainability Index",
+            dimension=self.dimension,
+            status=AuditStatus.PASS if not evidence else AuditStatus.WARN,
+            severity=Severity.MEDIUM,
+            evidence=evidence[:5],
+            recommendation="Refactor low-MI files to improve readability"
         )
     
     def _check_dead_code(self, context: ProbeContext) -> AuditResult:

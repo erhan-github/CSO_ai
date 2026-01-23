@@ -1,5 +1,5 @@
 {
-  "name": "@side-ai/mcp",
+  "name": "@sidemcp/mcp",
   "version": "1.0.0",
   "description": "Side MCP - The Strategic Partner that thinks for you",
   "main": "index.js",
@@ -9,8 +9,15 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": ["mcp", "side", "ai", "cursor", "code-review", "audit"],
-  "author": "Side AI",
+  "keywords": [
+    "mcp",
+    "side",
+    "ai",
+    "cursor",
+    "code-review",
+    "audit"
+  ],
+  "author": "Side",
   "license": "MIT",
   "dependencies": {}
 }

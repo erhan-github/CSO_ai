@@ -12,13 +12,14 @@ TOOLS: list[Tool] = [
         name="architectural_decision",
         description="""Get instant strategic decisions for YOUR situation.
         
-CRITICAL: Do NOT call this for syntax help, debugging, or simple code generation. ONLY call for high-stakes architectural decisions.
+CRITICAL: Do NOT call this for syntax help, debugging, or simple code generation. ONLY call for high-stakes decisions.
 
 Triggers:
-- "Side, should I use PostgreSQL or MongoDB?"
+- "Side, should I use PostgreSQL or MongoDB?" (Tech Stack)
+- "Monolith or microservices?" (Architecture)
+- "Should I focus on SEO or Ads?" (Growth)
+- "Is it time to fundraise?" (Business)
 - "Side, help me decide"
-- "What do you think about X?"
-- "Monolith or microservices?"
 
 Returns: Clear recommendation + reasoning + next steps.
 Speed: < 1 second
@@ -29,7 +30,7 @@ NOT generic advice - based on YOUR codebase, team, and stage.""",
             "properties": {
                 "question": {
                     "type": "string",
-                    "description": "Your strategic question",
+                    "description": "Your strategic question (Tech, Arch, Growth, Fundraising)",
                 },
                 "context": {
                     "type": "string",
@@ -173,6 +174,34 @@ Speed: < 5 seconds""",
             "type": "object",
             "properties": {},
             "required": [],
+        },
+    ),
+    Tool(
+        name="verify_fix",
+        description="""Verify if a fix for a specific finding worked. Returns pass/fail.
+        
+        CRITICAL: Agent MUST call this tool after applying a fix to verify it worked.
+        
+        Triggers:
+        - Agent self-check: "Did I fix the security issue?"
+        - "Verify fix for SEC-001"
+        
+        Returns:
+        - PASS: Issue resolved.
+        - FAIL: Issue still present (with details).""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "finding_type": {
+                    "type": "string",
+                    "description": "Type of finding to verify (e.g. 'Password Handling', 'File Length Limits')"
+                },
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to the file to check context for. If omitted, scans whole project."
+                }
+            },
+            "required": ["finding_type"]
         },
     ),
     # Note: simulate_users is now an alias for simulate. Only expose one tool.

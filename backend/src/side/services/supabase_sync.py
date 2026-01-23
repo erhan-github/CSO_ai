@@ -11,30 +11,31 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 import os
+import re
 
 from supabase import create_client, Client
 from side.storage.simple_db import SimplifiedDatabase
 
 logger = logging.getLogger(__name__)
 
+from side.auth.supabase_auth import get_supabase_client
+
 class SupabaseSyncService:
     """
     Handles bidirectional synchronization between local SQLite and Supabase.
+    Uses ANON KEY + RLS for security (No Service Role on Client).
     """
 
     def __init__(self, db: SimplifiedDatabase, project_id: str):
         self.db = db
         self.project_id = project_id
-        self.url = os.environ.get("SUPABASE_URL")
-        self.key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") # Use service role for backend sync
         
-        self.client: Client | None = None
-        if self.url and self.key:
-            try:
-                self.client = create_client(self.url, self.key)
-                logger.info("Supabase client initialized for sync.")
-            except Exception as e:
-                logger.error(f"Failed to initialize Supabase client: {e}")
+        # Use centralized auth factory (standardized)
+        # Note: We use the ANON client. RLS policies on the server must handle security.
+        self.client = get_supabase_client(service_role=False)
+        
+        if self.client:
+            logger.info("Supabase client initialized via Relay (Anon).")
         else:
             logger.warning("Supabase credentials missing. Sync disabled.")
 
@@ -72,7 +73,7 @@ class SupabaseSyncService:
 
         logger.debug("Starting Judicial Sync with PII scrubbing...")
         
-        # 1. Sync Profile (Scrubbed)
+        # 1. Sync Profile (Bidirectional: Pull tier/tokens, Push metadata)
         await self._sync_profile()
         
         # 2. Sync Decisions (Forensically sanitized)
@@ -80,8 +81,39 @@ class SupabaseSyncService:
         
         # 3. Sync Articles
         await self._sync_articles()
+
+        # 4. Sync Findings (Strategic Alerts)
+        await self._sync_findings()
+
+        # 5. Sync Activities (System Logs)
+        await self._sync_activities()
         
         logger.info("✅ GDPR-Compliant Supabase sync completed.")
+
+    async def _sync_profile(self) -> None:
+        """
+        Pull user profile from Supabase and update local SQLite.
+        This ensures 'tier' and 'SUs' are always in sync with Web/LemonSqueezy.
+        """
+        api_key = os.getenv("SIDE_API_KEY")
+        if not api_key:
+            return
+
+        from side.auth.supabase_auth import get_user_by_api_key
+        user_info = get_user_by_api_key(api_key)
+
+        if user_info and user_info.valid:
+            self.user_id = user_info.user_id # Store for other sync methods
+            # Update local profile
+            self.db.update_profile(
+                self.project_id,
+                profile_data={
+                    "tier": user_info.tier,
+                    "tokens_monthly": user_info.tokens_monthly,
+                    "tokens_used": user_info.tokens_used
+                }
+            )
+            logger.debug(f"Profile synced: {user_info.tier.upper()} ({user_info.tokens_monthly - user_info.tokens_used} SUs left)")
 
     def _scrub_pii(self, text: str) -> str:
         """
@@ -159,3 +191,83 @@ class SupabaseSyncService:
                     logger.debug(f"{len(supabase_articles)} articles synced to Supabase.")
             except Exception as e:
                 logger.error(f"Failed to sync articles: {e}")
+
+    async def _sync_findings(self):
+        """Push local findings to Supabase for the web dashboard."""
+        if not hasattr(self, "user_id"): return
+
+        with self.db._connection() as conn:
+            cursor = conn.execute("SELECT * FROM findings WHERE project_id = ?", (self.project_id,))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return
+
+            findings = [dict(row) for row in rows]
+            
+            supabase_findings = []
+            for f in findings:
+                supabase_findings.append({
+                    "id": f["id"],
+                    "project_id": self.project_id,
+                    "user_id": self.user_id,
+                    "type": f["type"],
+                    "severity": f["severity"],
+                    "file_path": f["file"],
+                    "line_number": f.get("line"),
+                    "message": self._scrub_pii(f["message"]),
+                    "recommendation": self._scrub_pii(f.get("action", "")),
+                    "is_resolved": f.get("resolved_at") is not None,
+                    "created_at": f.get("created_at"),
+                    "resolved_at": f.get("resolved_at")
+                })
+
+            try:
+                if supabase_findings:
+                    self.client.table("findings").upsert(supabase_findings).execute()
+                    logger.debug(f"{len(supabase_findings)} findings synced to Supabase.")
+            except Exception as e:
+                logger.error(f"Findings sync fail: {e}")
+
+    async def _sync_activities(self):
+        """Push recent local activities to Supabase logs."""
+        if not hasattr(self, "user_id"): return
+
+        with self.db._connection() as conn:
+            # Sync last 50 activities to avoid massive payloads
+            cursor = conn.execute(
+                "SELECT * FROM activities WHERE project_id = ? ORDER BY created_at DESC LIMIT 50", 
+                (self.project_id,)
+            )
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return
+
+            activities = [dict(row) for row in rows]
+            
+            supabase_activities = []
+            for a in activities:
+                # We don't push SQLite 'id' because Supabase manages its own BIGINT identity
+                supabase_activities.append({
+                    "project_id": self.project_id,
+                    "user_id": self.user_id,
+                    "tool": a["tool"],
+                    "action": a["action"],
+                    "cost_tokens": a.get("cost_tokens", 0),
+                    "tier": a.get("tier", "free"),
+                    "payload": a.get("payload"),
+                    "created_at": a.get("created_at")
+                })
+
+            try:
+                # Note: This is an insert-mostly operation. Deduplication would require 
+                # a local_id or timestamp/action hash in Supabase.
+                if supabase_activities:
+                    # Filter out ones already synced? 
+                    # For simplicity, we just push and let dashboard handle windowing.
+                    self.client.table("activities").insert(supabase_activities).execute()
+                    logger.debug(f"{len(supabase_activities)} activities pushed to Supabase.")
+            except Exception as e:
+                # This might fail on unique constraints if we implement them later
+                logger.error(f"Activities sync fail: {e}")

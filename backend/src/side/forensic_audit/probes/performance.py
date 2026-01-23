@@ -23,7 +23,7 @@ class PerformanceProbe:
     tier = Tier.FAST
     dimension = "Performance"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         """Run all performance checks."""
         return [
             self._check_n_plus_one(context),
@@ -31,6 +31,7 @@ class PerformanceProbe:
             self._check_blocking_calls(context),
             self._check_unbounded_loops(context),
             self._check_large_file_reads(context),
+            self._check_unindexed_foreign_keys(context),
             self._check_db_connection_pooling(context),
             self._check_caching_patterns(context),
             self._check_batch_operations(context),
@@ -321,5 +322,55 @@ class PerformanceProbe:
             status=AuditStatus.PASS if not evidence else AuditStatus.WARN,
             severity=Severity.MEDIUM,
             evidence=evidence[:5],
-            recommendation="Use batch/bulk operations for multiple inserts/updates"
+            recommendation="Use batch operations (bulk_create, executemany) for multiple inserts"
+        )
+
+    def _check_unindexed_foreign_keys(self, context: ProbeContext) -> AuditResult:
+        """
+        Check for Foreign Keys that are missing indexes.
+        (Postgres does NOT automatically index FKs, causing slow joins/deletes).
+        """
+        evidence = []
+        
+        # 1. SQLAlchemy Check (AST/Regex)
+        # Look for Column(..., ForeignKey(...)) without index=True
+        
+        for file_path in context.files:
+            if not file_path.endswith('.py'):
+                continue
+                
+            try:
+                content = Path(file_path).read_text()
+                lines = content.splitlines()
+                
+                for i, line in enumerate(lines):
+                    # Simple Regex Heuristic
+                    # Match: Column(..., ForeignKey(...
+                    # Negative Lookahead: index=True
+                    if 'ForeignKey(' in line and 'Column(' in line:
+                        if 'index=True' not in line and 'primary_key=True' not in line:
+                            # It *might* be unindexed. 
+                            # (False positives possible if index is defined separately, but good warning)
+                            evidence.append(AuditEvidence(
+                                description="Potential Unindexed Foreign Key (Postgres requires explicit index)",
+                                file_path=file_path,
+                                line_number=i+1,
+                                context=line.strip()[:80],
+                                suggested_fix="Add index=True to Column definition"
+                            ))
+            except Exception:
+                continue
+
+        # 2. SQL File Check (Regex)
+        # CREATE TABLE ... FOREIGN KEY ...
+        # Check if there is a corresponding CREATE INDEX
+        
+        return AuditResult(
+            check_id="PERF-009",
+            check_name="Unindexed Foreign Keys",
+            dimension=self.dimension,
+            status=AuditStatus.PASS if not evidence else AuditStatus.WARN,
+            severity=Severity.HIGH,
+            evidence=evidence[:10],
+            recommendation="Index all Foreign Keys to prevent locking and slow joins"
         )

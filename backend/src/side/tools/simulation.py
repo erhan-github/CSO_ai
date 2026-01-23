@@ -60,12 +60,12 @@ async def handle_simulate_users(arguments: dict[str, Any]) -> str:
         except Exception as log_e:
             logger.warning(f"Failed to log simulation activity: {log_e}")
             
-        # Trigger ledger update
+        # Trigger MONOLITH Evolution
         try:
-            from side.tools.planning import _generate_ledger_file
-            _generate_ledger_file(db)
-        except Exception:
-            pass
+            from side.tools.planning import _generate_monolith_file
+            await _generate_monolith_file(db)
+        except Exception as e:
+            logger.warning(f"Failed to evolve Monolith: {e}")
 
         return f"## 🎭 RAP Simulation Results\n\n**Feature:** {feature[:100]}...\n**Domain:** {domain}\n\n{result}"
         

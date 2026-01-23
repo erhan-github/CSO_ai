@@ -22,7 +22,7 @@ def setup_logging(log_level: str = "INFO", log_file: str | None = None) -> None:
     if log_file is None:
         log_dir = Path.home() / ".side-mcp" / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / f"side-mcp-{datetime.now().strftime('%Y%m%d')}.log"
+        log_file = log_dir / "sidelith.log"
     
     # Create formatter with detailed information
     formatter = logging.Formatter(

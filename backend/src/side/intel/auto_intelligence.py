@@ -128,22 +128,25 @@ class AutoIntelligence:
         try:
             from side.storage.simple_db import SimplifiedDatabase
             db = SimplifiedDatabase()
-            db_profile = db.get_profile(path)
+            # FIX: Use project_id for unified profile access
+            project_id = db.get_project_id(path)
+            db_profile = db.get_profile(project_id)
             
             if db_profile:
-                # Convert from DB format to QuickProfile
+                # Convert from Unified DB format to QuickProfile
+                # Note: db_profile has flattened keys 'languages', 'frameworks' etc from SimpleDB.get_profile
                 profile = QuickProfile(
-                    path=db_profile["path"],
+                    path=path, # Path is still needed for QuickProfile object identity
                     languages=db_profile.get("languages", {}),
-                    primary_language=db_profile.get("primary_language"),
+                    primary_language=None, # Not explicitly stored in new flattened structure, derive?
                     frameworks=db_profile.get("frameworks", []),
                     recent_commits=db_profile.get("recent_commits", 0),
-                    recent_files=db_profile.get("recent_files", []),
+                    recent_files=[], # Not typically stored in lightweight profile view
                     focus_areas=db_profile.get("focus_areas", []),
-                    project_docs=db_profile.get("project_docs", ""),
-                    stated_priorities=db_profile.get("stated_priorities", []),
-                    alignment_note=db_profile.get("alignment_note"),
-                    created_at=datetime.fromisoformat(db_profile["created_at"]) if db_profile.get("created_at") else datetime.now(timezone.utc),
+                    project_docs="", # Not stored in new profile table
+                    stated_priorities=[], # Not stored
+                    alignment_note=None,
+                    created_at=datetime.now(timezone.utc), # SimpleDB doesn't return created_at
                     expires_at=datetime.fromisoformat(db_profile["updated_at"]) + timedelta(hours=24) if db_profile.get("updated_at") else datetime.now(timezone.utc) + timedelta(hours=24),
                 )
                 
@@ -161,22 +164,25 @@ class AutoIntelligence:
         # Save to in-memory cache
         self._cache[path] = profile
         
-        # Save to database for persistence
+        # Save to database for persistence (UNIFIED)
         try:
             from side.storage.simple_db import SimplifiedDatabase
             db = SimplifiedDatabase()
-            db.save_profile(
-                path=profile.path,
-                languages=profile.languages,
-                primary_language=profile.primary_language,
-                frameworks=profile.frameworks,
-                recent_commits=profile.recent_commits,
-                recent_files=profile.recent_files,
-                focus_areas=profile.focus_areas,
-                project_docs=profile.project_docs,
-                stated_priorities=profile.stated_priorities,
-                alignment_note=profile.alignment_note,
-            )
+            project_id = db.get_project_id(path)
+            
+            # Construct dictionary for update_profile
+            # Logic will auto-pack into tech_stack JSON
+            profile_data = {
+                "languages": profile.languages,
+                "frameworks": profile.frameworks,
+                "recent_commits": profile.recent_commits,
+                "recent_files": profile.recent_files,
+                "focus_areas": profile.focus_areas,
+                # Metadata (could be enhanced with detected domain details)
+                "domain": profile.domain
+            }
+            
+            db.update_profile(project_id, profile_data)
         except Exception:
             # If database save fails, that's okay - we have the profile
             pass

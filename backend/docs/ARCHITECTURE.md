@@ -1,4 +1,4 @@
-# CSO.ai Architecture
+# Side Architecture
 
 > **"Grammarly for Strategy"** - A silent, always-on Strategic Language Server for modern IDEs.
 
@@ -117,15 +117,15 @@ sequenceDiagram
 
 ## Security Model
 
-- **Local-First**: All data stored in local SQLite (`.cso/local.db`)
+- **Local-First**: All data stored in local SQLite (`.side/local.db`)
 - **No Cloud Leaks**: Sensitive keys stripped before subprocess calls
 - **RLS Enforcement**: ForensicEngine detects missing Row Level Security
 
 ## File Structure
 
 ```
-cso-ai/
-├── src/cso_ai/
+side/
+├── src/side/
 │   ├── tools/              # Modular tool handlers
 │   │   ├── __init__.py
 │   │   ├── core.py         # Singletons

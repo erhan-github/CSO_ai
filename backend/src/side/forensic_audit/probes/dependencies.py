@@ -16,11 +16,12 @@ class DependencyProbe:
     tier = Tier.FAST
     dimension = "Dependencies"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_lock_files(context),
             self._check_pinned_versions(context),
             self._check_dev_dependencies(context),
+            await self._check_osv_vulnerabilities(context),
         ]
     
     def _check_lock_files(self, context: ProbeContext) -> AuditResult:
@@ -87,4 +88,142 @@ class DependencyProbe:
             status=AuditStatus.PASS if has_separation else AuditStatus.INFO,
             severity=Severity.LOW,
             recommendation="Use pyproject.toml or requirements-dev.txt"
+        )
+    async def _check_osv_vulnerabilities(self, context: ProbeContext) -> AuditResult:
+        """
+        Query OSV.dev for real CVEs in dependencies.
+        Supports: package.json (npm), pyproject.toml (pypi)
+        """
+        import json
+        try:
+            import tomllib  # Python 3.11+
+        except ImportError:
+            import tomli as tomllib # Fallback
+        except ImportError:
+            tomllib = None
+            
+        import aiohttp
+        
+        vulnerabilities = []
+        root = Path(context.project_root)
+        
+        # 1. Gather Dependencies
+        deps_to_check = [] # List of {'name': str, 'version': str, 'ecosystem': 'PyPI'|'npm'}
+        
+        # Check package.json (npm)
+        pkg_json = root / 'web' / 'package.json'
+        if not pkg_json.exists():
+             pkg_json = root / 'package.json'
+             
+        if pkg_json.exists():
+            try:
+                data = json.loads(pkg_json.read_text())
+                for dep, ver in data.get('dependencies', {}).items():
+                    # clean version (remove ^, ~)
+                    clean_ver = ver.replace('^', '').replace('~', '')
+                    if re.match(r'^\d+\.\d+\.\d+', clean_ver):
+                        deps_to_check.append({'name': dep, 'version': clean_ver, 'ecosystem': 'npm'})
+            except Exception:
+                pass
+
+        # Check pyproject.toml (PyPI)
+        py_toml = root / 'backend' / 'pyproject.toml'
+        if not py_toml.exists():
+            py_toml = root / 'pyproject.toml'
+            
+        if py_toml.exists():
+            try:
+                # Basic TOML parsing if tomli missing
+                content = py_toml.read_text()
+                in_deps = False
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line == '[tool.poetry.dependencies]':
+                        in_deps = True
+                        continue
+                    if line.startswith('['):
+                        in_deps = False
+                    
+                    if in_deps and '=' in line:
+                        parts = line.split('=')
+                        name = parts[0].strip()
+                        ver = parts[1].strip().strip('"').strip("'")
+                        ver = ver.replace('^', '').replace('~', '')
+                        if re.match(r'^\d+\.\d+\.\d+', ver):
+                            deps_to_check.append({'name': name, 'version': ver, 'ecosystem': 'PyPI'})
+            except Exception:
+                pass
+        
+        if not deps_to_check:
+            return AuditResult(
+                check_id="DEP-CVE-001",
+                check_name="OSV Vulnerability Scan",
+                dimension=self.dimension,
+                status=AuditStatus.SKIP,
+                severity=Severity.HIGH,
+                notes="No dependencies found to scan"
+            )
+
+        # 2. Query OSV API (Batching would be better, but doing logical serial for simplicity/correctness now)
+        # Using aiohttp for speed if available, else requests
+        
+        # Since we are in async run, we should try to be non-blocking.
+        # But for robustness in this environment, let's use the simplest working method
+        # We will use the curl approach logic or basic http. 
+        # Actually, let's just use standard library calls or aiohttp if available.
+        # Assuming aiohttp is in the project (it usually is for modern python), otherwise fallback.
+        
+        found_cves = []
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                for dep in deps_to_check:
+                    payload = {
+                        "package": {"name": dep['name'], "ecosystem": dep['ecosystem']},
+                        "version": dep['version']
+                    }
+                    try:
+                        async with session.post("https://api.osv.dev/v1/query", json=payload) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                if data.get('vulns'):
+                                    for vuln in data['vulns']:
+                                        found_cves.append({
+                                            'package': dep['name'],
+                                            'version': dep['version'],
+                                            'id': vuln['id'],
+                                            'details': vuln.get('details', 'No details available')[:100] + "..."
+                                        })
+                    except Exception:
+                        continue
+        except ImportError:
+            # Fallback for environments without aiohttp (unlikely but safe)
+            pass
+            
+        if found_cves:
+             evidence = [
+                 AuditEvidence(
+                     description=f"{cve['package']}@{cve['version']} has vulnerability {cve['id']}",
+                     context=cve['details'],
+                     suggested_fix="Upgrade package version"
+                 )
+                 for cve in found_cves
+             ]
+             return AuditResult(
+                check_id="DEP-CVE-001",
+                check_name="OSV Vulnerability Scan",
+                dimension=self.dimension,
+                status=AuditStatus.FAIL,
+                severity=Severity.CRITICAL,
+                evidence=evidence,
+                recommendation="Update vulnerable dependencies immediately"
+            )
+
+        return AuditResult(
+            check_id="DEP-CVE-001",
+            check_name="OSV Vulnerability Scan",
+            dimension=self.dimension,
+            status=AuditStatus.PASS,
+            severity=Severity.HIGH,
+            notes=f"Scanned {len(deps_to_check)} packages. No known CVEs found."
         )

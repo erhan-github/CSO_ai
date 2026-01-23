@@ -1,92 +1,115 @@
-import { Activity, CreditCard } from "lucide-react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { Zap, Copy, Terminal, Key, Check } from "lucide-react";
 import Link from "next/link";
-import { RefillButton } from "./refill-button";
-import { supabase } from "@/lib/supabase";
-import { ActivityLedger } from "@/components/activity-ledger";
+import { CheckoutButton } from "@/components/dashboard/CheckoutButton";
 
-export default async function Dashboard() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || "mock_user";
+export default async function DashboardPage() {
+    const supabase = await createClient();
 
-    // Fetch real data from Local API
-    let activities: any[] = [];
-    let localProfile = { tier: 'free', balance: 50000 };
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    try {
-        const [activityRes, profileRes] = await Promise.all([
-            fetch(`${appUrl}/api/forensics?action=activities`, { cache: 'no-store' }),
-            fetch(`${appUrl}/api/forensics?action=profile`, { cache: 'no-store' })
-        ]);
-
-        if (activityRes.ok) activities = await activityRes.json();
-        if (profileRes.ok) localProfile = await profileRes.json();
-    } catch (error) {
-        console.error('Failed to fetch data:', error);
+    if (!user) {
+        return redirect("/login");
     }
 
-    const tokenBalance = localProfile.balance;
-    const userTier = localProfile.tier;
-    const formattedTokens = new Intl.NumberFormat().format(tokenBalance);
+    // Fetch Profile for API Key
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+    // Fallback if profile doesn't exist yet (first login race condition handling could be better but this is MVP)
+    const apiKey = profile?.api_key || "sk_live_generating...";
+    const tier = profile?.tier || "free";
+    const tokens = profile?.tokens_monthly || 10000;
 
     return (
-        <div className="min-h-screen bg-black text-white selection:bg-white/20 font-sans tracking-tight">
-            {/* Minimalist Sidebar */}
-            <aside className="fixed left-0 top-0 bottom-0 w-64 border-r border-white/5 bg-black z-50">
-                <div className="p-8">
-                    <div className="flex items-center gap-3 mb-12">
-                        <div className="h-5 w-5 bg-white rounded-[2px]" />
-                        <span className="font-black text-lg tracking-tighter">SIDE <span className="text-zinc-500">MCP</span></span>
-                    </div>
-
-                    <nav className="flex flex-col gap-2">
-                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-bold bg-white/5 text-white rounded-[4px] border border-white/5 shadow-inner">
-                            <Activity className="w-3.5 h-3.5" />
-                            ACTIVITY
-                        </Link>
-                        <Link href="/pricing" className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-zinc-500 hover:text-zinc-200 transition-colors">
-                            <CreditCard className="w-3.5 h-3.5" />
-                            BILLING
-                        </Link>
-                    </nav>
-                </div>
-
-                {/* Token Balance (Cursor-style) */}
-                <div className="absolute bottom-8 left-8 right-8">
-                    <div className="p-5 rounded-lg border border-white/5 bg-zinc-900/30">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Balance</span>
-                            <span className="text-[10px] font-bold text-blue-500 uppercase">{userTier} plan</span>
+        <div className="min-h-screen bg-black text-white p-8">
+            <div className="max-w-4xl mx-auto space-y-8">
+                {/* Header */}
+                <div className="flex justify-between items-end border-b border-white/10 pb-6">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-3 h-3 bg-cyan-500 rounded-sm animate-pulse" />
+                            <span className="text-xs uppercase tracking-[0.3em] text-zinc-500 font-bold">System of Record</span>
                         </div>
-                        <div className="text-2xl font-black font-mono tracking-tighter mb-4">{formattedTokens}</div>
-                        <RefillButton />
+                        <h1 className="text-4xl font-bold tracking-tighter">Sidelith <span className="text-zinc-500 font-light text-2xl ml-2">Registry</span></h1>
+                        <p className="text-zinc-400 mt-2 italic">Welcome back, {user.user_metadata.full_name || user.email}</p>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-xs uppercase tracking-[0.2em] text-zinc-400 font-black">Infrastructure Tier</span>
+                        <p className="font-black text-2xl uppercase tracking-tighter text-white">{tier}</p>
                     </div>
                 </div>
-            </aside>
 
-            {/* Main Content - Cursor-style (Activity Log Only) */}
-            <main className="pl-64">
-                <header className="h-20 border-b border-white/5 flex items-center justify-between px-10 sticky top-0 bg-black/80 backdrop-blur-md z-40">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-xs font-bold tracking-[0.3em] text-zinc-500 uppercase">Activity Log</h1>
-                        <div className="h-1 w-1 rounded-full bg-zinc-800" />
-                        <span className="text-[10px] font-mono text-zinc-400">CURSOR-STYLE</span>
+                {/* API Key Section */}
+                <div className="bg-zinc-900 border border-white/10 rounded-xl p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Key className="w-32 h-32" />
                     </div>
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 text-[9px] text-zinc-500 font-mono tracking-widest">
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                            SYSTEM READY
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <Terminal className="w-5 h-5 text-cyan-400" />
+                        Registry Credentials
+                    </h2>
+                    <div className="space-y-3 mb-8 text-sm text-zinc-300 font-medium">
+                        <p className="flex items-center gap-2 text-white">
+                            <Check className="w-4 h-4 text-green-400" /> 100% Judicial Sync (Sanitized)
+                        </p>
+                        <p className="flex items-center gap-2">
+                            <Check className="w-4 h-4 text-green-400" /> Bidirectional Monolith Updates
+                        </p>
+                        <p className="flex items-center gap-2">
+                            <Check className="w-4 h-4 text-green-400" /> Sovereign Egress (GDPR Compliant)
+                        </p>
+                    </div>
+
+                    <div className="bg-black/50 border border-white/5 rounded-lg p-5 flex items-center justify-between font-mono text-sm group-hover:border-cyan-500/30 transition-colors">
+                        <div className="flex flex-col">
+                            <span className="text-xs text-zinc-600 mb-1 uppercase tracking-tighter">Secret ID</span>
+                            <span className="text-green-400 truncate mr-4 text-base">{apiKey}</span>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5" />
+                        <div className="text-[10px] text-zinc-700 uppercase tracking-widest font-bold border border-zinc-800 px-2 py-1 rounded">Read Only</div>
                     </div>
-                </header>
-
-                {/* Activity Log (Full Width) */}
-                <div className="p-10 max-w-4xl">
-                    <ActivityLedger activities={activities} />
                 </div>
-            </main>
+
+                {/* Usage & Billing */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-zinc-900 border border-white/10 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold mb-2">Registry Capacity</h3>
+                        <div className="mt-4">
+                            <div className="flex justify-between text-sm mb-2 font-bold uppercase tracking-tighter">
+                                <span className="text-zinc-400">Registry Throughput</span>
+                                <span className="font-mono text-white">{tokens.toLocaleString()} SUs</span>
+                            </div>
+                            <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                                <div className="h-full bg-cyan-500 w-[10%]" />
+                            </div>
+                            <p className="text-[10px] text-zinc-500 mt-2 uppercase tracking-widest font-black">Capacity Resets Feb 1st</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 flex flex-col justify-center items-center text-center group">
+                        <div className="w-12 h-12 bg-cyan-500/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-cyan-500/20 transition-all">
+                            <Zap className="w-6 h-6 text-cyan-500" />
+                        </div>
+                        <h3 className="font-bold text-lg mb-4 uppercase tracking-tighter italic">Evolve to Pro</h3>
+                        <div className="space-y-2 mb-6 text-xs text-zinc-500">
+                            <p>• 5,000 SUs Monthly</p>
+                            <p>• Architectural Forensics</p>
+                            <p>• Priority Infrastructure</p>
+                        </div>
+
+                        <CheckoutButton
+                            variantId={process.env.LEMONSQUEEZY_VARIANT_ID_PRO!}
+                            label="EVOLVE NOW ($20)"
+                        />
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

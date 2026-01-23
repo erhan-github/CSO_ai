@@ -16,7 +16,7 @@ class CostProbe:
     tier = Tier.FAST
     dimension = "Cost & Efficiency"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_cost_tracking(context),
             self._check_caching(context),

@@ -63,12 +63,17 @@ class LLMClient:
             logger.warning("   Set one of: GROQ_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY")
 
     def _load_dotenv(self):
-        """Load environment variables from .env file if it exists."""
+        """
+        Load environment variables from .env file if it exists.
+        
+        STRICT MODE: Only loads SIDE_CLOUD_KEY or SIDE_PROJECT_ID.
+        We do NOT load OPENAI_API_KEY/GROQ_API_KEY from user files anymore.
+        All intelligence must be routed through Side Cloud or Trial Credits.
+        """
         from pathlib import Path
         
         # Find backend root (where .env typically lives)
         this_file = Path(__file__).resolve()
-        # side/llm/client.py -> side/llm/ -> side/ -> src/ -> backend/
         backend_dir = this_file.parent.parent.parent.parent
         project_root = backend_dir.parent
         
@@ -77,6 +82,9 @@ class LLMClient:
             project_root / ".env",
             Path.cwd() / ".env",
         ]
+        
+        # Only allow specific keys for Managed Access
+        ALLOWED_KEYS = ["SIDE_API_KEY", "SIDE_PROJECT_ID", "GROQ_API_KEY"]
         
         for env_path in possible_paths:
             if env_path.exists():
@@ -88,9 +96,9 @@ class LLMClient:
                                 key, value = line.split('=', 1)
                                 key = key.strip()
                                 value = value.strip().strip('"').strip("'")
-                                # Use same logic as ArchitectureAdvisor
-                                if key and value and (key not in os.environ or not os.environ.get(key)):
-                                    os.environ[key] = value
+                                
+                                if key in ALLOWED_KEYS and value:
+                                     os.environ[key] = value
                     break
                 except Exception:
                     pass

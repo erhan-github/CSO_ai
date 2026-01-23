@@ -91,7 +91,7 @@ class QueryAnalyzer:
     TECH_KEYWORDS = [
         'redis', 'postgres', 'mongodb', 'mysql', 'sqlite',
         'react', 'vue', 'angular', 'svelte', 'nextjs',
-        'auth', 'authentication', 'payment', 'stripe',
+        'auth', 'authentication', 'payment', 'lemonsqueezy',
         'docker', 'kubernetes', 'aws', 'gcp', 'azure',
         'llm', 'gpt', 'ai', 'ml', 'reasoning', 'benchmark'
     ]

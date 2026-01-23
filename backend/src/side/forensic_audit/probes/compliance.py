@@ -15,7 +15,7 @@ class ComplianceProbe:
     tier = Tier.FAST
     dimension = "Compliance"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_privacy_policy(context),
             self._check_data_retention(context),

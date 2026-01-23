@@ -1,4 +1,4 @@
-# CSO.ai Vision
+# Side Vision
 
 > **Your AI Chief Strategy Officer** - Strategic intelligence that understands your codebase, business, and market without being asked.
 
@@ -16,7 +16,7 @@ But they're too busy building to do this well.
 
 ## The Solution
 
-**CSO.ai** is an AI Chief Strategy Officer that:
+**Side** is an AI Chief Strategy Officer that:
 
 1. **Listens** continuously to your codebase, documents, and data
 2. **Understands** deeply your technical stack, business model, and market position
@@ -46,7 +46,7 @@ But they're too busy building to do this well.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         CSO.ai BRAIN                            │
+│                         Side AI BRAIN                           │
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │   LISTENER   │  │  UNDERSTANDER│  │  ANTICIPATOR │          │
@@ -141,7 +141,7 @@ But they're too busy building to do this well.
 ## User Interaction Examples
 
 ### Natural Queries
-- "Hey CSO, what should I focus on?"
+- "Hey Side, what should I focus on?"
 - "What's our strategic position?"
 - "Any risks I should know about?"
 - "What's happening in our space?"
@@ -149,7 +149,7 @@ But they're too busy building to do this well.
 - "Are we ready to fundraise?"
 
 ### Proactive Insights (Future)
-- "I noticed you added Stripe - here's what you need for PCI compliance"
+- "I noticed you added Lemon Squeezy - here's what you need for PCI compliance"
 - "Your test coverage dropped 20% this month - technical debt is growing"
 - "Competitor X just raised $10M and is hiring aggressively"
 - "Based on your commit patterns, you might want to consider a refactor"
@@ -171,7 +171,7 @@ But they're too busy building to do this well.
 ---
 
 ## 🔐 Privacy & Trust
-CSO.ai operates on a **Zero-Knowledge Architecture** for your code.
+Side AI operates on a **Zero-Knowledge Architecture** for your code.
 - **Code Indexing**: Stays 100% local.
 - **Strategic Logic**: Runs locally on your machine.
 - **Sync**: Only anonymized metadata (project_hash, decision_id) is synced to the cloud.
@@ -193,4 +193,4 @@ We are building the first **Recursive Strategy Engine**—an AI that doesn't jus
 
 > "The best CSO doesn't wait to be asked. They see what's coming and prepare you for it."
 
-CSO.ai embodies this philosophy. It's not a search engine or a chatbot. It's a strategic intelligence system that knows your business as well as you do - maybe better - and helps you navigate what's ahead.
+Side AI embodies this philosophy. It's not a search engine or a chatbot. It's a strategic intelligence system that knows your business as well as you do - maybe better - and helps you navigate what's ahead.

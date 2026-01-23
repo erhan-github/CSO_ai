@@ -1,8 +1,8 @@
 """
 Side Cloud API.
 
-Hosted service for all users. Token-based limits, not feature-based.
-Everyone gets the same features. Upgrade is just more tokens.
+Capacity-based limits, not feature-based.
+Everyone gets the same features. Upgrade is just more capacity (CP).
 """
 import os
 import logging
@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 # Use Supabase-based auth
 from side.auth.supabase_auth import validate_api_key, get_api_key_from_header, UserInfo, record_token_usage
-from side.cloud.limiter import limiter, TOKEN_COSTS
+from side.cloud.limiter import limiter, CAPACITY_COSTS
 
 # Import auth routers (for OAuth flow)
 from side.auth.github import router as github_router
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Side API",
-    description="Your Strategic Partner. Token-based, full access for everyone.",
+    description="Your Strategic Partner. Capacity-based, full access for everyone.",
     version="1.0.0",
 )
 
@@ -105,9 +105,19 @@ class AuditResponse(BaseModel):
 
 class UsageResponse(BaseModel):
     """Usage statistics."""
-    used: int
-    limit: int
-    remaining: int
+    monthly_allowance_used: int
+    monthly_allowance_limit: int
+    monthly_allowance_remaining: int
+    addon_balance: int
+    total_remaining: int
+    month: str
+
+class LedgerItem(BaseModel):
+    """Forensic ledger item."""
+    timestamp: float
+    operation: str
+    cost: int
+    model: str
 
 
 # ==================
@@ -150,9 +160,9 @@ async def run_audit(
     """
     Run expert audits on a code snippet.
     
-    All users get access to all experts. Token limits apply.
+    All users get access to all experts. Capacity limits apply.
     """
-    # Check token limit
+    # Check capacity limit
     allowed, reason = limiter.check_limit(user.user_id, "audit")
     if not allowed:
         raise HTTPException(status_code=429, detail=reason)
@@ -197,7 +207,7 @@ async def run_audit(
             evidence=result.evidence[0].context if result.evidence else None,
         ))
     
-    # Record token usage
+    # Record capacity usage
     limiter.record_usage(user.user_id, "audit")
     
     return AuditResponse(
@@ -206,9 +216,21 @@ async def run_audit(
     )
 
 
+@app.get("/v1/audit/ledger", response_model=List[LedgerItem])
+async def get_ledger(
+    user: UserInfo = Depends(get_current_user),
+    limit: int = 50
+):
+    """
+    Get forensic transaction ledger.
+    PALANTIR-LEVEL TRANSPARENCY:
+    Every capacity deduction is logged and auditable.
+    """
+    return limiter.get_ledger(user.user_id, limit)
+
 @app.get("/v1/usage", response_model=UsageResponse)
 async def get_usage(user: UserInfo = Depends(get_current_user)) -> UsageResponse:
-    """Get current token usage."""
+    """Get current capacity usage."""
     usage = limiter.get_usage(user.user_id)
     return UsageResponse(**usage)
 

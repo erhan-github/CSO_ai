@@ -89,15 +89,21 @@ class StrategicEvaluator:
         # DIMENSION 3: SECURITY
         # ═══════════════════════════════════════════════════════════════════
         critical_count = audit_summary.get('CRITICAL', 0)
-        warning_count = audit_summary.get('WARNING', 0)
+        high_count = audit_summary.get('HIGH', 0)
+        warning_count = audit_summary.get('WARNING', 0) or audit_summary.get('MEDIUM', 0)
         
-        if critical_count == 0:
+        if critical_count == 0 and high_count == 0:
             dimensions["Security"] = 35
         else:
-            dimensions["Security"] = max(10, 35 - (critical_count * 5))
+            # Steep penalty for critical/high
+            penalty = (critical_count * 8) + (high_count * 4)
+            dimensions["Security"] = max(5, 35 - penalty)
             
         if warning_count == 0:
             dimensions["Security"] = min(40, dimensions["Security"] + 5)
+        else:
+            # Slight penalty for warnings/medium
+            dimensions["Security"] = max(5, dimensions["Security"] - (warning_count * 2))
         
         # ═══════════════════════════════════════════════════════════════════
         # DIMENSION 4: DOCS
@@ -208,27 +214,50 @@ class StrategicEvaluator:
             dimensions["Investor"] = min(40, dimensions["Investor"] + 5)
         
         # ═══════════════════════════════════════════════════════════════════
-        # FINAL CALCULATION
+        # FINAL CALCULATION: THE TWO PILLARS
         # ═══════════════════════════════════════════════════════════════════
-        strategic_iq = sum(dimensions.values())
         
-        # Top Focus calculation
+        # 1. Forensic Pillar (Hard Tech Health)
+        forensic_dims = ["Security", "Architecture", "Velocity", "Docs", "Resilience"]
+        forensic_total = sum(dimensions[d] for d in forensic_dims)
+        forensic_max = len(forensic_dims) * 40
+        forensic_score = int((forensic_total / forensic_max) * 100)
+        
+        # 2. Strategic Pillar (Business Viability)
+        strategic_dims = ["MarketFit", "Community", "Legal", "Compliance", "Investor"]
+        strategic_total = sum(dimensions[d] for d in strategic_dims)
+        strategic_max = len(strategic_dims) * 40
+        strategic_score = int((strategic_total / strategic_max) * 100)
+        
+        # 3. Master Grade (50/50 Split)
+        final_score = int((forensic_score + strategic_score) / 2)
+        
+        def get_grade(score):
+            if score >= 90: return "A", "World Class"
+            if score >= 80: return "B", "Solid"
+            if score >= 70: return "C", "Functional"
+            if score >= 60: return "D", "Risky"
+            return "F", "Critical"
+
+        grade, label = get_grade(final_score)
+        f_grade, _ = get_grade(forensic_score)
+        s_grade, _ = get_grade(strategic_score)
+        
+        # Restore Top Focus calculation
         min_dim = min(dimensions, key=dimensions.get)
         top_focus = f"{min_dim} enhancement required" if dimensions[min_dim] < 28 else "Sustaining excellence"
         
-        # Simple A-F Scale (consistent with audit system, 400-point normalized)
-        percentage = min(100, (strategic_iq / 400) * 100)
-        if percentage >= 90: grade, label = "A", "Production Ready"
-        elif percentage >= 80: grade, label = "B", "Needs Polish"
-        elif percentage >= 70: grade, label = "C", "MVP Quality"
-        elif percentage >= 60: grade, label = "D", "Significant Issues"
-        else: grade, label = "F", "Critical Fixes Needed"
+        raw_score = sum(dimensions.values())
         
         return {
-            "score": strategic_iq,
-            "max_score": 400,
-            "grade": grade,
-            "label": label,
+            "score": final_score,         # 0-100
+            "raw_score": raw_score,       # 0-400
+            "grade": grade,               # A-F
+            "label": label,               # Descriptor
+            "forensic_score": forensic_score,
+            "forensic_grade": f_grade,
+            "strategic_score": strategic_score,
+            "strategic_grade": s_grade,
             "dimensions": dimensions,
             "top_focus": top_focus
         }

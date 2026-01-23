@@ -1,0 +1,15 @@
+[build]
+builder = "docker"
+dockerfile = "Dockerfile"
+
+[deploy]
+startCommand = "python run_server.py"
+healthcheckPath = "/sse"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+
+[deploy.environments.production]
+MCP_TRANSPORT = "sse"
+
+[deploy.environments.staging]
+MCP_TRANSPORT = "sse"

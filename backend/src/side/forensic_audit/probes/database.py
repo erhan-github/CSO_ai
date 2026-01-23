@@ -23,7 +23,7 @@ class DatabaseProbe:
     tier = Tier.FAST
     dimension = "Database"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         """Run all database checks."""
         return [
             self._check_primary_keys(context),

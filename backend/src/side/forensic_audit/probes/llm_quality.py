@@ -16,7 +16,7 @@ class LLMQualityProbe:
     tier = Tier.FAST
     dimension = "AI/LLM Quality"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_token_limits(context),
             self._check_fallbacks(context),
@@ -24,6 +24,8 @@ class LLMQualityProbe:
             self._check_prompt_injection(context),
             self._check_rate_limiting(context),
             self._check_cost_tracking(context),
+            self._check_system_prompt(context),
+            self._check_temperature_safety(context),
         ]
     
     def _check_token_limits(self, context: ProbeContext) -> AuditResult:
@@ -32,7 +34,7 @@ class LLMQualityProbe:
         found_count = 0
         
         for file_path in context.files:
-            if not file_path.endswith('.py'):
+            if not any(file_path.endswith(ext) for ext in ['.py', '.ts', '.js', '.tsx', '.jsx']):
                 continue
             try:
                 content = Path(file_path).read_text()
@@ -106,7 +108,7 @@ class LLMQualityProbe:
         ]
         
         for file_path in context.files:
-            if not file_path.endswith('.py'):
+            if not any(file_path.endswith(ext) for ext in ['.py', '.ts', '.js', '.tsx', '.jsx']):
                 continue
             try:
                 content = Path(file_path).read_text()
@@ -173,4 +175,85 @@ class LLMQualityProbe:
             status=AuditStatus.PASS if has_tracking else AuditStatus.WARN,
             severity=Severity.MEDIUM,
             recommendation="Track token usage per call for cost monitoring"
+        )
+
+    def _check_system_prompt(self, context: ProbeContext) -> AuditResult:
+        """Check if LLM calls include a System Prompt (Best Practice)."""
+        evidence = []
+        
+        # Regex to find message construction without 'system' role
+        # Heuristic: Find specific list definitions messages=[...]
+        # This is hard with regex, maybe better with AST?
+        # Let's try simple regex: If a file imports openai/llm but doesn't mention "role": "system" or "role": 'system'
+        
+        for file_path in context.files:
+            if not any(file_path.endswith(ext) for ext in ['.py', '.ts', '.js', '.tsx', '.jsx']):
+                continue
+                
+            try:
+                content = Path(file_path).read_text()
+                
+                # Check if it looks like an LLM file
+                if not any(k in content for k in ['openai', 'anthropic', 'LLMClient', 'chat.completions']):
+                    continue
+                
+                # Check if system role is mentioned
+                has_system = 'role": "system"' in content or "role': 'system'" in content or 'role": "system"' in content
+                
+                if not has_system:
+                     evidence.append(AuditEvidence(
+                        description="LLM code detected but no System Prompt found",
+                        file_path=file_path,
+                        suggested_fix="Always include {'role': 'system', ...} to ground the model"
+                    ))
+            except Exception:
+                continue
+        
+        return AuditResult(
+            check_id="LLM-007",
+            check_name="System Prompt Enforcement",
+            dimension=self.dimension,
+            status=AuditStatus.PASS if not evidence else AuditStatus.WARN,
+            severity=Severity.MEDIUM,
+            evidence=evidence[:5],
+            recommendation="Always use System Prompts to define agent behavior"
+        )
+
+    def _check_temperature_safety(self, context: ProbeContext) -> AuditResult:
+        """Check for potentially unsafe temperature settings."""
+        evidence = []
+        
+        # Regex to find high temperature usage
+        # temperature=0.9 or temperature = 0.9
+        high_temp_pattern = r'temperature\s*=\s*(0\.[7-9]|1\.0|1|2)'
+        
+        for file_path in context.files:
+            if not any(file_path.endswith(ext) for ext in ['.py', '.ts', '.js', '.tsx', '.jsx']):
+                continue
+                
+            try:
+                content = Path(file_path).read_text()
+                
+                for line_idx, line in enumerate(content.splitlines(), 1):
+                    match = re.search(high_temp_pattern, line)
+                    if match:
+                        # Context: Is this code generation? 
+                        # Simple heuristic: Just warn on high temp generally for now as a "Check this"
+                        evidence.append(AuditEvidence(
+                            description=f"High temperature detected ({match.group(1)})",
+                            file_path=file_path,
+                            line_number=line_idx,
+                            suggested_fix="Use temp < 0.7 for deterministic tasks (coding), > 0.7 for creative"
+                        ))
+            except Exception:
+                continue
+        
+        return AuditResult(
+            check_id="LLM-008",
+            check_name="LLM Parameter Safety",
+            dimension=self.dimension,
+            status=AuditStatus.PASS if not evidence else AuditStatus.INFO,
+            severity=Severity.LOW,
+            evidence=evidence[:5],
+            recommendation="Verify temperature settings match the use case (Code=Low, Creative=High)"
         )

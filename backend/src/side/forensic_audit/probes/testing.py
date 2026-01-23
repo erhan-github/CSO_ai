@@ -21,7 +21,7 @@ class TestingProbe:
     tier = Tier.FAST
     dimension = "Testing"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_test_files_exist(context),
             self._check_pytest_config(context),

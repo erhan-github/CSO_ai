@@ -22,13 +22,15 @@ class InfrastructureProbe:
     tier = Tier.FAST
     dimension = "Infrastructure"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_dockerfile_security(context),
             self._check_docker_compose(context),
             self._check_secrets_management(context),
             self._check_healthchecks(context),
             self._check_resource_limits(context),
+            self._check_k8s_basics(context),
+            self._check_terraform_security(context),
         ]
     
     def _check_dockerfile_security(self, context: ProbeContext) -> AuditResult:
@@ -199,4 +201,91 @@ class InfrastructureProbe:
             status=AuditStatus.PASS if has_limits else AuditStatus.INFO,
             severity=Severity.LOW,
             recommendation="Set memory and CPU limits in docker-compose"
+        )
+
+    def _check_k8s_basics(self, context: ProbeContext) -> AuditResult:
+        """Check for basic Kubernetes security/performance issues."""
+        evidence = []
+        
+        for file_path in context.files:
+            if not any(file_path.endswith(ext) for ext in ['.yaml', '.yml']):
+                continue
+                
+            try:
+                content = Path(file_path).read_text()
+                # Heuristic: Is it a K8s file?
+                if 'apiVersion:' not in content or 'kind:' not in content:
+                    continue
+                    
+                lines = content.splitlines()
+                for i, line in enumerate(lines):
+                    # Check for missing resources
+                    # This is hard with regex line-by-line, but we can check if 'resources:' is missing in Deployment/Pod
+                    pass
+                
+                if 'kind: Deployment' in content or 'kind: Pod' in content:
+                    if 'resources:' not in content:
+                         evidence.append(AuditEvidence(
+                            description="Kubernetes manifest missing resource limits",
+                            file_path=file_path,
+                            suggested_fix="Define resources.requests and resources.limits"
+                        ))
+                    if 'imagePullPolicy: Always' in content:
+                        evidence.append(AuditEvidence(
+                            description="imagePullPolicy: Always (performance risk)",
+                            file_path=file_path,
+                            suggested_fix="Use IfNotPresent or specific tags"
+                        ))
+
+            except Exception:
+                continue
+                
+        return AuditResult(
+            check_id="INFRA-006",
+            check_name="Kubernetes Basics",
+            dimension=self.dimension,
+            status=AuditStatus.PASS if not evidence else AuditStatus.WARN,
+            severity=Severity.MEDIUM,
+            evidence=evidence[:5],
+            recommendation="Define resource limits and use stable image policies"
+        )
+
+    def _check_terraform_security(self, context: ProbeContext) -> AuditResult:
+        """Check for basic Terraform security misconfigurations."""
+        evidence = []
+        
+        for file_path in context.files:
+            if not file_path.endswith('.tf'):
+                continue
+                
+            try:
+                content = Path(file_path).read_text()
+                
+                # Check for 0.0.0.0/0 in ingress
+                if '0.0.0.0/0' in content and 'ingress' in content:
+                     evidence.append(AuditEvidence(
+                        description="Security Group open to world (0.0.0.0/0)",
+                        file_path=file_path,
+                        suggested_fix="Restrict CIDR blocks to necessary IPs"
+                    ))
+                
+                # Check for public buckets
+                if 'acl' in content and ('"public-read"' in content or "'public-read'" in content):
+                    evidence.append(AuditEvidence(
+                        description="S3 Bucket has public-read ACL",
+                        file_path=file_path,
+                        suggested_fix="Use private ACL and CloudFront for public assets"
+                    ))
+                    
+            except Exception:
+                continue
+
+        return AuditResult(
+            check_id="INFRA-007",
+            check_name="Terraform Security",
+            dimension=self.dimension,
+            status=AuditStatus.PASS if not evidence else AuditStatus.WARN,
+            severity=Severity.HIGH,
+            evidence=evidence[:5],
+            recommendation="Restrict Security Groups and S3 ACLs"
         )

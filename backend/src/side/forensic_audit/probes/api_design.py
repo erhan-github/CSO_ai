@@ -23,7 +23,7 @@ class APIDesignProbe:
     tier = Tier.FAST
     dimension = "API Design"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_consistent_responses(context),
             self._check_error_handling(context),

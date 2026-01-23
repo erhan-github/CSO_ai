@@ -105,6 +105,9 @@ class ProbeContext:
     files: List[str]
     config: Dict[str, Any] = field(default_factory=dict)
     git_enabled: bool = True
+    strategic_context: Dict[str, Any] = field(default_factory=dict)
+    intelligence_store: Optional[Any] = None  # Using Any to avoid circular import
+    llm_client: Optional[Any] = None  # Using Any to avoid circular import
 
 
 @dataclass
@@ -124,6 +127,8 @@ class AuditSummary:
     high_findings: int
     results_by_dimension: Dict[str, List[AuditResult]]
     timestamp: datetime = field(default_factory=datetime.utcnow)
+    upsell_context: Optional[Dict[str, Any]] = None
+    gamification_context: Optional[Dict[str, Any]] = None # New Gamification context
     
     @property
     def grade(self) -> str:

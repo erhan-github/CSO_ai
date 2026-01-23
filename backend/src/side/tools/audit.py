@@ -16,6 +16,8 @@ from side.utils import handle_tool_errors
 from side.forensic_audit.runner import ForensicAuditRunner
 from side.forensic_audit.core import AuditFixRisk, Severity, AuditStatus
 from side.tools.formatting import ToolResult
+from side.intel.intelligence_store import IntelligenceStore
+from side.storage.simple_db import SimplifiedDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -45,18 +47,27 @@ async def handle_run_audit(arguments: dict[str, Any]) -> str:
     # Extract arguments
     dimension = arguments.get('dimension')
     fmt = arguments.get('format', 'summary')
+    deep_mode = arguments.get('deep', False)
+    only_fast = not deep_mode # Default to FAST only unless --deep is passed
     
     # Run Audit
     runner = ForensicAuditRunner(str(project_root))
     
     if dimension:
-        # Run specific dimension
-        summary = runner.run_dimension(dimension)
+        # Run specific dimension (Contextual Upsell happens here)
+        summary = await runner.run_dimension(dimension, only_fast=only_fast)
         if not summary:
             return f"❌ Unknown dimension: {dimension}. Valid dimensions: security, performance, database, etc."
     else:
         # Run full audit
-        summary = runner.run()
+        summary = await runner.run(only_fast=only_fast)
+
+    # Apply Auto-Fixes if requested
+    fixed_count = 0
+    if arguments.get('fix'):
+        print("🔧 Applying Auto-Fixes...")
+        fixed_count = await runner.apply_fixes(summary)
+        print(f"✅ Applied {fixed_count} fixes.")
 
     elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
     
@@ -160,11 +171,98 @@ async def handle_run_audit(arguments: dict[str, Any]) -> str:
         lines.append(f"{', '.join(perfect_dims)}")
         lines.append("")
 
-    # Footer
-    lines.append(f"Run full report: `@side audit report`")
-    
-    # Log to DB (Hidden)
-    # TODO: Implement DB logging
+    # CONTEXTUAL UPSELL (Premium Feature)
+    if summary.upsell_context:
+        dim_name = summary.upsell_context.get('dimension', 'Unknown')
+        deep_ids = summary.upsell_context.get('deep_probes', [])
+        
+        lines.append("---")
+        lines.append("")
+        lines.append(f"## 🚀 Upgrade to Deep {dim_name} Audit")
+        lines.append(f"You just ran the Standard (Static) check for {dim_name}.")
+        lines.append("To find logical flaws, bypasses, and architectural violations, use Side Intelligence:")
+        lines.append("")
+        
+        for pid in deep_ids:
+            if 'security' in pid:
+                lines.append(f"- **Deep Security**: `micro_audit.py {pid} <file>`")
+            elif 'logic' in pid:
+                lines.append(f"- **Deep Logic**: `micro_audit.py {pid} <file>`")
+            elif 'arch' in pid:
+                lines.append(f"- **Architecture Sentinel**: `micro_audit.py {pid} <file>`")
+            elif 'test' in pid:
+                lines.append(f"- **Generative QA**: `micro_audit.py {pid} <file>`")
+            elif 'intent' in pid:
+                lines.append(f"- **Intent Verification**: `micro_audit.py {pid} <file>`")
+        
+        lines.append("")
+        lines.append("> *Tip: Ask the Agent to run these deep checks on critical files.*")
+        lines.append("")
+
+    # GAMIFICATION DISPLAY (Serious Fun)
+    if summary.gamification_context:
+        g = summary.gamification_context
+        
+        # Level Up Banner
+        if g.get("leveled_up"):
+            lines.append("🎉" * 20)
+            lines.append(f"   LEVEL UP! You are now Level {g['new_level']}   ")
+            lines.append("🎉" * 20)
+            lines.append("")
+        
+        # XP Footer
+        xp = g.get("xp_gained", 0)
+        streak = g.get("streak", 0)
+        
+        footer_parts = [f"✨ +{xp} XP"]
+        if streak > 0:
+            footer_parts.append(f"🔥 {streak}-Run Streak")
+            
+        # Economy Display
+        su_grant = g.get("su_grant", 0)
+        # Also check badge bounties? Bounties are returned in 'unlocked_badges' metadata if we updated runner
+        # Wait, runner calls unlock_badge which returns badge dict.
+        # engine.unlock_badge now returns 'bounty' key.
+        bounty_total = sum(b.get("bounty", 0) for b in g.get("unlocked_badges", []))
+        total_sus = su_grant + bounty_total
+        
+        if total_sus > 0:
+            footer_parts.append(f"💰 +{total_sus} SUs")
+        
+        # Badges
+        for badge in g.get("unlocked_badges", []):
+            bounty_str = f" (+{badge['bounty']} SUs)" if badge.get('bounty') else ""
+            lines.append(f"🏆 ACHIEVEMENT UNLOCKED: {badge['icon']} {badge['name']} - {badge['desc']}{bounty_str}")
+            
+        lines.append(" | ".join(footer_parts))
+        lines.append("")
+
+    # Log to DB (Hidden persistence)
+    try:
+        db = SimplifiedDatabase()
+        project_id = db.get_project_id(project_root)
+        store = IntelligenceStore(db)
+        store.store_audit_summary(project_id, summary)
+        
+        # Log activity
+        db.log_activity(
+            project_id=project_id,
+            tool="audit",
+            action="Executed Forensic Audit",
+            cost_tokens=0,
+            tier=summary.grade,
+            payload={
+                "score": summary.score_percentage,
+                "failed": summary.failed,
+                "warnings": summary.warnings
+            }
+        )
+        # Evolve the Monolith to reflect new findings
+        from side.tools.planning import _generate_monolith_file
+        await _generate_monolith_file(db)
+        
+    except Exception as e:
+        logger.error(f"Failed to persist audit results: {e}")
     
     return "\n".join(lines)
 
@@ -176,7 +274,16 @@ if __name__ == "__main__":
     # Simple CLI wrapper
     args = {}
     if len(sys.argv) > 1:
-        args['dimension'] = sys.argv[1]
+        # Simple simplistic parser
+        for arg in sys.argv[1:]:
+            if arg == '--fix':
+                args['fix'] = True
+            elif arg == '--deep':
+                args['deep'] = True
+            elif arg.startswith('--'):
+                pass # ignore other flags
+            else:
+                args['dimension'] = arg
     
     print("🛡️  Starting Side Forensic Audit...")
     try:

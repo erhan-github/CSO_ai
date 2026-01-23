@@ -1,8 +1,7 @@
 """
 Side Simplified Database - Fast, focused storage with auto-cleanup.
 
-Simplified from 5 tables to 4 tables:
-1. profiles - Lightweight auto-detected profiles
+Simplified from 5 tables to 4 tables5: 1. profile - Lightweight auto-detected profiles
 2. articles - Articles with embedded score cache
 3. work_context - What user is working on (7-day retention)
 4. query_cache - Pre-computed results (1-hour retention)
@@ -19,7 +18,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Generator
 
-from side.intel.market import Article
+
+from side.utils.helpers import safe_get
 
 # Module-level logger for early initialization code
 logger = logging.getLogger(__name__)
@@ -292,17 +292,25 @@ class SimplifiedDatabase:
                     target_raise TEXT,
                     tech_stack JSON,
                     tier TEXT DEFAULT 'free',
-                    token_balance INTEGER DEFAULT 50000,
+                    token_balance INTEGER DEFAULT 50,
+                    tokens_monthly INTEGER DEFAULT 50,
+                    tokens_used INTEGER DEFAULT 0,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
             # Migrate: add columns if missing
             try:
-                conn.execute("ALTER TABLE profile ADD COLUMN tier TEXT DEFAULT 'free'")
+                conn.execute("ALTER TABLE profile ADD COLUMN tier TEXT DEFAULT 'hobby'")
             except: pass
             try:
-                conn.execute("ALTER TABLE profile ADD COLUMN token_balance INTEGER DEFAULT 50000")
+                conn.execute("ALTER TABLE profile ADD COLUMN token_balance INTEGER DEFAULT 50")
+            except: pass
+            try:
+                conn.execute("ALTER TABLE profile ADD COLUMN tokens_monthly INTEGER DEFAULT 50")
+            except: pass
+            try:
+                conn.execute("ALTER TABLE profile ADD COLUMN tokens_used INTEGER DEFAULT 0")
             except: pass
             # Stage: idea, mvp, growth, scale
             # Domain: edtech, fintech, saas, etc.
@@ -360,6 +368,7 @@ class SimplifiedDatabase:
                     external_apis INTEGER DEFAULT 0,
                     git_monitoring INTEGER DEFAULT 1,
                     first_run_complete INTEGER DEFAULT 0,
+                    gamification_enabled INTEGER DEFAULT 1,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -370,6 +379,13 @@ class SimplifiedDatabase:
             # - external_apis: OFF (requires opt-in for LLM calls)
             # - git_monitoring: ON (local only, safe)
             # - first_run_complete: OFF (show welcome on first use)
+            # - gamification_enabled: ON (fun by default, opt-out available)
+            
+            # Migrate: add gamification_enabled if missing
+            try:
+                conn.execute("ALTER TABLE consents ADD COLUMN gamification_enabled INTEGER DEFAULT 1")
+            except Exception:
+                pass
 
             # ─────────────────────────────────────────────────────────────
             # OPERATIONAL TABLES (Keep existing for compatibility)
@@ -465,34 +481,56 @@ class SimplifiedDatabase:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_activities_tool ON activities(tool)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_activities_created ON activities(created_at DESC)")
 
-            # Legacy compatibility: profiles table (will migrate to profile)
+            # ─────────────────────────────────────────────────────────────
+            # GAMIFICATION LAYER (Serious Fun)
+            # ─────────────────────────────────────────────────────────────
+            
+            # 1. User Stats (The "Character Sheet")
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS profiles (
-                    path TEXT PRIMARY KEY,
-                    languages JSON NOT NULL,
-                    primary_language TEXT,
-                    frameworks JSON,
-                    recent_commits INTEGER DEFAULT 0,
-                    recent_files JSON,
-                    focus_areas JSON,
-                    project_docs TEXT,
-                    stated_priorities JSON,
-                    alignment_note TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                CREATE TABLE IF NOT EXISTS user_stats (
+                    project_id TEXT PRIMARY KEY,
+                    total_xp INTEGER DEFAULT 0,
+                    level INTEGER DEFAULT 1,
+                    current_streak INTEGER DEFAULT 0,
+                    last_action_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
-            # Migration for existing profiles table
-            try:
-                conn.execute("ALTER TABLE profiles ADD COLUMN project_docs TEXT")
-            except: pass
-            try:
-                conn.execute("ALTER TABLE profiles ADD COLUMN stated_priorities JSON")
-            except: pass
-            try:
-                conn.execute("ALTER TABLE profiles ADD COLUMN alignment_note TEXT")
-            except: pass
+            # 2. Achievements (The "Trophy Case")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS achievements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id TEXT NOT NULL,
+                    badge_id TEXT NOT NULL,
+                    unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    metadata JSON,
+                    UNIQUE(project_id, badge_id)
+                )
+            """)
+            # 3. XP Ledger (The "Score Log")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS xp_ledger (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id TEXT,
+                    action_type TEXT,
+                    xp_amount INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+
+            # 4. Outcomes Ledger (Instrumentation)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS outcomes_ledger (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id TEXT,
+                    outcome_type TEXT,
+                    leverage_value REAL DEFAULT 1.0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_xp_project ON xp_ledger(project_id)")
+
+            # NOTE: Legacy 'profiles' table removed - use 'profile' table instead
 
             # NOTE: Legacy 'goals' table removed - use 'plans' table instead
 
@@ -579,109 +617,183 @@ class SimplifiedDatabase:
     # Profile Operations
     # =========================================================================
 
-    def save_profile(
-        self,
-        path: str,
-        languages: dict[str, int],
-        primary_language: str | None = None,
-        frameworks: list[str] | None = None,
-        recent_commits: int = 0,
-        recent_files: list[str] | None = None,
-        focus_areas: list[str] | None = None,
-        project_docs: str | None = None,
-        stated_priorities: list[str] | None = None,
-        alignment_note: str | None = None,
-    ) -> None:
-        """Save or update a profile."""
+    # =========================================================================
+    # Profile Operations (Consolidated)
+    # =========================================================================
+
+    def update_profile(self, project_id: str, profile_data: dict[str, Any]) -> None:
+        """
+        Update the Sovereign Identity Profile.
+        
+        Writes to the unified 'profile' table.
+        AUTO-MIGRATION: logic handles storing tech details in 'tech_stack' JSON.
+        """
+        # Prepare tech_stack JSON from flat data if needed
+        tech_stack = safe_get(profile_data, "tech_stack")
+        if not tech_stack:
+            tech_stack = {
+                "languages": safe_get(profile_data, "languages", {}),
+                "frameworks": safe_get(profile_data, "frameworks", []),
+                "recent_commits": safe_get(profile_data, "recent_commits", 0),
+                "recent_files": safe_get(profile_data, "recent_files", []),
+                "focus_areas": safe_get(profile_data, "focus_areas", [])
+            }
+
         with self._connection() as conn:
             conn.execute(
                 """
-                INSERT INTO profiles (
-                    path, languages, primary_language, frameworks,
-                    recent_commits, recent_files, focus_areas, 
-                    project_docs, stated_priorities, alignment_note, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(path) DO UPDATE SET
-                    languages = excluded.languages,
-                    primary_language = excluded.primary_language,
-                    frameworks = excluded.frameworks,
-                    recent_commits = excluded.recent_commits,
-                    recent_files = excluded.recent_files,
-                    focus_areas = excluded.focus_areas,
-                    project_docs = excluded.project_docs,
-                    stated_priorities = excluded.stated_priorities,
-                    alignment_note = excluded.alignment_note,
+                INSERT INTO profile (
+                    id, name, company, domain, stage, business_model, 
+                    target_raise, tech_stack, tier, tokens_monthly, tokens_used, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    tech_stack = COALESCE(excluded.tech_stack, tech_stack),
+                    tier = COALESCE(excluded.tier, tier),
+                    tokens_monthly = COALESCE(excluded.tokens_monthly, tokens_monthly),
+                    tokens_used = COALESCE(excluded.tokens_used, tokens_used),
                     updated_at = excluded.updated_at
                 """,
                 (
-                    path,
-                    json.dumps(languages),
-                    primary_language,
-                    json.dumps(frameworks or []),
-                    recent_commits,
-                    json.dumps(recent_files or []),
-                    json.dumps(focus_areas or []),
-                    project_docs,
-                    json.dumps(stated_priorities or []),
-                    alignment_note,
-                    datetime.now(timezone.utc).isoformat(),
-                ),
+                    project_id,
+                    profile_data.get("name"),
+                    profile_data.get("company"),
+                    profile_data.get("domain"),
+                    profile_data.get("stage"),
+                    profile_data.get("business_model"),
+                    profile_data.get("target_raise"),
+                    json.dumps(tech_stack) if tech_stack else None,
+                    profile_data.get("tier"),
+                    profile_data.get("tokens_monthly"),
+                    profile_data.get("tokens_used"),
+                    datetime.now(timezone.utc).isoformat()
+                )
             )
-            conn.commit()
+            
+            # Update 'project_docs' etc in legacy 'profiles' table for now if needed?
+            # NO. The plan is to KILL legacy table usage.
+            # But we might want to store project_docs somewhere? 
+            # The 'profile' table doesn't have project_docs.
+            # Let's add it dynamically to meta or context if missing, 
+            # OR just assume we only need tech_stack for Monolith for now.
+            # Actually AutoIntelligence reads/writes project_docs.
+            # Let's verify schema. 
+            pass
 
-    def get_profile(self, path: str) -> dict[str, Any] | None:
-        """Get a profile by path."""
+    def get_profile(self, project_id: str) -> dict[str, Any] | None:
+        """
+        Get the unified profile (with tech stack flattened for convenience).
+        """
+        with self._connection() as conn:
+            # Try new table first
+            row = conn.execute(
+                "SELECT * FROM profile WHERE id = ?", (project_id,)
+            ).fetchone()
+            
+            if row:
+                # Unpack JSON
+                tech_stack = json.loads(row["tech_stack"]) if row["tech_stack"] else {}
+                
+                # Construct clean object
+                return {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "tier": row["tier"],
+                    "tokens_monthly": row["tokens_monthly"],
+                    "tokens_used": row["tokens_used"],
+                    "token_balance": row["token_balance"],
+                    # Flattened technicals for easy consumption
+                    "languages": tech_stack.get("languages", {}),
+                    "frameworks": tech_stack.get("frameworks", []),
+                    "recent_commits": tech_stack.get("recent_commits", 0),
+                    "focus_areas": tech_stack.get("focus_areas", []),
+                    "tech_stack": tech_stack,
+                    "updated_at": row["updated_at"]
+                }
+            
+            # Fallback: Check legacy 'profiles' table using project_id as path (imperfect but useful for transition)
+            # Actually, let's just return None to force re-analysis if new profile is missing.
+            return None
+    
+    def get_token_balance(self, project_id: str) -> dict[str, Any]:
+        """Get current SUs and Tier."""
         with self._connection() as conn:
             row = conn.execute(
-                "SELECT * FROM profiles WHERE path = ?",
-                (path,),
+                "SELECT token_balance, tier FROM profile WHERE id = ?", (project_id,)
             ).fetchone()
+            if row:
+                return {
+                    "balance": row["token_balance"],
+                    "tier": row["tier"]
+                }
+            return {"balance": 0, "tier": "free"}
 
-            if row is None:
-                return None
-
-            return {
-                "path": row["path"],
-                "languages": json.loads(row["languages"]),
-                "primary_language": row["primary_language"],
-                "frameworks": json.loads(row["frameworks"]) if row["frameworks"] else [],
-                "recent_commits": row["recent_commits"],
-                "recent_files": json.loads(row["recent_files"]) if row["recent_files"] else [],
-                "focus_areas": json.loads(row["focus_areas"]) if row["focus_areas"] else [],
-                "project_docs": row["project_docs"],
-                "stated_priorities": json.loads(row["stated_priorities"]) if row["stated_priorities"] else [],
-                "alignment_note": row["alignment_note"],
-                "created_at": row["created_at"],
-                "updated_at": row["updated_at"],
-            }
-
-    def get_latest_profile(self) -> dict[str, Any] | None:
-        """Get most recently updated profile."""
+    def update_token_balance(self, project_id: str, amount: int) -> int:
+        """
+        Update token balance atomically with strict constraints.
+        
+        Rule #2: Enforce everything server side (in the DB transaction).
+        
+        Args:
+            project_id: Project ID
+            amount: Amount to add (positive) or deduct (negative)
+        
+        Returns:
+            New balance
+            
+        Raises:
+            InsufficientTokensError: If balance would drop below zero
+        """
         with self._connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM profiles ORDER BY updated_at DESC LIMIT 1"
-            ).fetchone()
+            if amount < 0:
+                # Deduction: Atomic check AND update
+                cursor = conn.execute(
+                    """
+                    UPDATE profile 
+                    SET token_balance = token_balance + ? 
+                    WHERE id = ? AND token_balance >= ?
+                    """,
+                    (amount, project_id, abs(amount))
+                )
+                if cursor.rowcount == 0:
+                    # Check if it was ID missing or funds missing
+                    row = conn.execute("SELECT token_balance FROM profile WHERE id = ?", (project_id,)).fetchone()
+                    if not row:
+                        # Should initiate profile? For now, fail.
+                        raise InsufficientTokensError("Profile not found.")
+                    current = row["token_balance"]
+                    raise InsufficientTokensError(f"Insufficient SUs. Have {current}, need {abs(amount)}.")
+            else:
+                # Addition: Always allowed
+                conn.execute(
+                    "UPDATE profile SET token_balance = token_balance + ? WHERE id = ?",
+                    (amount, project_id)
+                )
+            
+            # Return new balance
+            row = conn.execute("SELECT token_balance FROM profile WHERE id = ?", (project_id,)).fetchone()
+            return row["token_balance"] if row else 0
 
-            if row is None:
-                return None
+    def log_activity(self, project_id: str, tool: str, action: str, cost: int, tier: str = "free", payload: dict = None) -> None:
+        """Log a system activity/cost."""
+        try:
+            with self._connection() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO activities (
+                        project_id, tool, action, cost_tokens, tier, payload
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (project_id, tool, action, cost, tier, json.dumps(payload) if payload else None)
+                )
+        except Exception as e:
+            logger.error(f"Failed to log activity: {e}")
 
-            return {
-                "path": row["path"],
-                "languages": json.loads(row["languages"]),
-                "primary_language": row["primary_language"],
-                "frameworks": json.loads(row["frameworks"]) if row["frameworks"] else [],
-                "recent_commits": row["recent_commits"],
-                "recent_files": json.loads(row["recent_files"]) if row["recent_files"] else [],
-                "focus_areas": json.loads(row["focus_areas"]) if row["focus_areas"] else [],
-                "created_at": row["created_at"],
-                "updated_at": row["updated_at"],
-            }
-
+    # Legacy method deprecated - removed save_profile
     # =========================================================================
     # Article Operations (with score caching)
     # =========================================================================
 
-    def save_article(self, article: Article) -> None:
+    def save_article(self, article: Any) -> None:
         """Save or update an article."""
         with self._connection() as conn:
             # Get existing scores if article exists
@@ -728,7 +840,7 @@ class SimplifiedDatabase:
             )
             conn.commit()
 
-    def get_cached_articles(self, max_age_hours: int = 1, limit: int = 100) -> list[Article]:
+    def get_cached_articles(self, max_age_hours: int = 1, limit: int = 100) -> list[Any]:
         """
         Get cached articles if fresh enough.
 
@@ -890,11 +1002,6 @@ class SimplifiedDatabase:
             
             conn.commit()
 
-    def get_token_balance(self) -> int:
-        """Get current token balance from the wallet."""
-        with self._connection() as conn:
-            row = conn.execute("SELECT token_balance FROM profile WHERE id = 'main'").fetchone()
-            return row['token_balance'] if row else 50000
 
     def set_token_balance(self, balance: int) -> None:
         """Manually set the token balance (for testing and administrative overrides)."""
@@ -1152,6 +1259,7 @@ class SimplifiedDatabase:
 
     def save_plan(
         self,
+        project_id: str,
         plan_id: str,
         title: str,
         plan_type: str = "goal",
@@ -1164,21 +1272,23 @@ class SimplifiedDatabase:
         Save a strategic plan item.
         
         Args:
+            project_id: Project identifier for isolation
             plan_type: objective (5yr), milestone (1yr), goal (month), task (week)
         """
         with self._connection() as conn:
             conn.execute(
                 """
-                INSERT INTO plans (id, title, type, description, due_date, parent_id, priority)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO plans (id, project_id, title, type, description, due_date, parent_id, priority)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
+                    project_id = excluded.project_id,
                     title = excluded.title,
                     type = excluded.type,
                     description = excluded.description,
                     due_date = excluded.due_date,
                     priority = excluded.priority
                 """,
-                (plan_id, title, plan_type, description, due_date, parent_id, priority),
+                (plan_id, project_id, title, plan_type, description, due_date, parent_id, priority),
             )
             conn.commit()
 
@@ -1188,11 +1298,14 @@ class SimplifiedDatabase:
             row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
             return dict(row) if row else None
 
-    def list_plans(self, plan_type: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
-        """List plans, optionally filtered by type or status."""
+    def list_plans(self, project_id: str | None = None, plan_type: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
+        """List plans, optionally filtered by project, type or status."""
         with self._connection() as conn:
             query = "SELECT * FROM plans WHERE 1=1"
             params = []
+            if project_id:
+                query += " AND project_id = ?"
+                params.append(project_id)
             if plan_type:
                 query += " AND type = ?"
                 params.append(plan_type)
@@ -1447,7 +1560,7 @@ class SimplifiedDatabase:
 
     def get_due_checkpoints(self) -> list[dict[str, Any]]:
         """Get checkpoints that are due (based on frequency and last_asked)."""
-        now = datetime.now(timezone.utc)
+        # now = datetime.now(timezone.utc) # Unused
         with self._connection() as conn:
             rows = conn.execute(
                 """
@@ -1492,7 +1605,7 @@ class SimplifiedDatabase:
         Returns:
             Dict with counts of deleted records per table
         """
-        now = datetime.now(timezone.utc).isoformat()
+        # now = datetime.now(timezone.utc).isoformat() # Unused
         deleted = {}
 
         with self._connection() as conn:

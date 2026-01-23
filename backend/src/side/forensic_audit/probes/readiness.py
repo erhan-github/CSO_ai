@@ -22,7 +22,7 @@ class ReadinessProbe:
     tier = Tier.FAST
     dimension = "Product Readiness"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_mock_data(context),
             self._check_placeholders(context),

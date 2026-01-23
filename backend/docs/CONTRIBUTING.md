@@ -1,6 +1,6 @@
-# Contributing to CSO.ai
+# Contributing to Side
 
-Thank you for your interest in contributing to CSO.ai! This guide will help you get started.
+Thank you for your interest in contributing to Side! This guide will help you get started.
 
 ---
 
@@ -34,7 +34,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 
 # With coverage
-pytest tests/ --cov=cso_ai --cov-report=html
+pytest tests/ --cov=side --cov-report=html
 
 # Specific test file
 pytest tests/test_auto_intelligence.py -v
@@ -102,7 +102,7 @@ ruff format src/
 ```python
 # Example test structure
 import pytest
-from cso_ai.your_module import your_function
+from side.your_module import your_function
 
 class TestYourFeature:
     """Tests for your amazing feature."""
@@ -152,8 +152,8 @@ perf: optimize database queries
 ## 🏗️ Project Structure
 
 ```
-cso-ai/
-├── src/cso_ai/           # Source code
+side/
+├── src/side/             # Source code
 │   ├── server.py         # MCP server entry point
 │   ├── tools_refined.py  # Core tools
 │   ├── intel/            # Intelligence modules
@@ -249,7 +249,7 @@ cso-ai/
 ## 🐛 Reporting Bugs
 
 **Before submitting**:
-1. Check [existing issues](https://github.com/yourusername/cso-ai/issues)
+1. Check [existing issues](https://github.com/erhan-github/side/issues)
 2. Try latest version
 3. Gather debug info
 
@@ -273,12 +273,12 @@ What actually happens
 ### Environment
 - OS: macOS 14.0
 - Python: 3.11.6
-- CSO.ai version: 0.1.0
+- Side version: 0.1.0
 - Cursor version: 0.40.0
 
 ### Debug Info
 ```bash
-export CSO_AI_DEBUG=1
+export SIDE_AI_DEBUG=1
 # Run command that triggers bug
 # Paste output here
 ```
@@ -294,7 +294,7 @@ Any other relevant information
 **Before submitting**:
 1. Check [roadmap](docs/ROADMAP.md)
 2. Search existing issues
-3. Consider if it fits CSO.ai's philosophy
+3. Consider if it fits Sidelith's philosophy
 
 **Feature Request Template**:
 
@@ -399,8 +399,8 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 - **GitHub Discussions**: Ask questions, share ideas
 - **Issues**: Bug reports, feature requests
-- **Twitter**: [@cso_ai](https://twitter.com/cso_ai)
+- Twitter: [@sidemcp](https://twitter.com/sidemcp)
 
 ---
 
-**Thank you for making CSO.ai better!** 🚀
+**Thank you for making Side better!** 🚀

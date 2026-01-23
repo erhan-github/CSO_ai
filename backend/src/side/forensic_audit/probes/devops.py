@@ -20,7 +20,7 @@ class DevOpsProbe:
     tier = Tier.FAST
     dimension = "DevOps"
     
-    def run(self, context: ProbeContext) -> List[AuditResult]:
+    async def run(self, context: ProbeContext) -> List[AuditResult]:
         return [
             self._check_ci_config(context),
             self._check_docker(context),

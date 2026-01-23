@@ -84,6 +84,7 @@ class StrategicRecommendation:
     next_steps: list[str]  # Actionable steps
     estimated_effort: str  # "30 minutes", "2 hours", "1 day"
     impact: str  # "HIGH", "MEDIUM", "LOW"
+    tool_proposal: dict[str, Any] | None = None  # The proactive tool call
     
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -95,8 +96,12 @@ class StrategicRecommendation:
             "next_steps": self.next_steps,
             "estimated_effort": self.estimated_effort,
             "impact": self.impact,
+            "tool_proposal": self.tool_proposal,
         }
 
+
+from side.llm.client import LLMClient
+from side.services.billing import SystemAction
 
 class StrategicDecisionEngine:
     """
@@ -106,7 +111,8 @@ class StrategicDecisionEngine:
     strategic decisions vibe coders face during product development.
     
     Philosophy:
-    - Speed: < 1 second responses
+    - Speed: < 1 second responses (Heuristic) -> "Twitchy"
+    - Intelligence: Deep reasoning for complex qs (V2 Hybrid) -> "Deliberate"
     - Clarity: Clear recommendation + reasoning
     - Action: Immediate next steps
     - Context: Based on YOUR situation, not generic advice
@@ -115,7 +121,86 @@ class StrategicDecisionEngine:
     def __init__(self):
         """Initialize the decision engine."""
         self.decision_history: list[StrategicRecommendation] = []
+        self.llm = LLMClient()
     
+    def _ask_expert(
+        self,
+        question: str,
+        context: StrategicContext,
+        decision_type: DecisionType
+    ) -> StrategicRecommendation:
+        """
+        V2 HYBRID ROUTER: The "Thinking" Path.
+        Uses Model Chaining for Speed & Economy:
+        1. FAST_MODEL (8B): Quick Triage & Simple Logic.
+        2. SMART_MODEL (70B): Deep Strategic Nuance.
+        """
+        import json
+        
+        # 🟢 Tier 1: Is this a simple or complex question? (Rapid Triage)
+        # We can use a small prompt to let the 8B model decide if it needs help.
+        # For V1-V2 transition, we'll use the LLMClient's auto-tiered completion.
+        
+        # 1. Construct Prompt
+        prompt = f"""You are a Strategic CTO.
+        
+        User Question: "{question}"
+        
+        Project Context:
+        - Stack: {context.tech_stack}
+        - Team: {context.team_size} people
+        - Stage: {context.stage}
+        
+        Task: Provide a decisive recommendation. 
+        If this is a tech choice, be opinionated.
+        
+        Output JSON ONLY:
+        {{
+            "recommendation": "Title",
+            "confidence": "high",
+            "reasoning": ["..."],
+            "next_steps": ["..."],
+            "estimated_effort": "...",
+            "impact": "HIGH"
+        }}
+        """
+        
+        try:
+            # 🟢 Tier 2: Smart Selection
+            # We use Llama 3.1 8B for most things, and Llama 3.3 70B for the "Strategy" decision type.
+            target_model = "llama-3.1-8b-instant" # Default fast
+            if decision_type in [DecisionType.ARCHITECTURE, DecisionType.FUNDRAISING]:
+                target_model = "llama-3.3-70b-versatile" # Deep thinking
+                
+            response = self.llm.complete(
+                messages=[{"role": "user", "content": prompt}],
+                system_prompt="You are a CTO.",
+                model_override=target_model,
+                temperature=0.2
+            )
+            
+            # 3. Parse JSON
+            clean_response = response.replace("```json", "").replace("```", "").strip()
+            data = json.loads(clean_response)
+            
+            return StrategicRecommendation(
+                decision_type=decision_type,
+                recommendation=data.get("recommendation", "Analysis"),
+                confidence=ConfidenceLevel.HIGH,
+                reasoning=data.get("reasoning", []),
+                alternatives=[],
+                next_steps=data.get("next_steps", []),
+                estimated_effort=data.get("estimated_effort", "Unknown"),
+                impact=data.get("impact", "HIGH"),
+                tool_proposal={
+                    "name": "plan", 
+                    "arguments": {"goal": f"Execute strategy: {data.get('recommendation')}", "due": "this week"}
+                }
+            )
+            
+        except Exception:
+            return self._generic_tech_decision(question, context)
+
     def analyze_tech_stack_decision(
         self,
         question: str,
@@ -123,21 +208,18 @@ class StrategicDecisionEngine:
     ) -> StrategicRecommendation:
         """
         Analyze tech stack decisions (e.g., PostgreSQL vs MongoDB).
-        
-        Uses decision frameworks:
-        - Team capability assessment
-        - Use case fit analysis
-        - Cost-benefit analysis
-        - Risk assessment
-        
-        Returns instant recommendation with clear reasoning.
+        Hybrid Router: Heuristic (Fast) vs Expert (Smart).
         """
-        # Example: PostgreSQL vs MongoDB
-        if "postgres" in question.lower() or "mongodb" in question.lower():
-            return self._analyze_database_choice(context)
+        q_lower = question.lower()
         
-        # Add more tech stack decisions here
-        return self._generic_tech_decision(question, context)
+        # Path A: Heuristic (Fast, Free, Deterministic)
+        # Matches known patterns that we have calibrated logic for.
+        if "postgres" in q_lower or "mongodb" in q_lower:
+            return self._analyze_database_choice(context)
+            
+        # Path B: Hybrid V2 (Slow, Paid, Smart)
+        # Handles everything else (e.g. "Geospatial", "Vector DB", "Redis vs Memcached")
+        return self._ask_expert(question, context, DecisionType.TECH_STACK)
     
     def _analyze_database_choice(
         self,
@@ -217,6 +299,13 @@ class StrategicDecisionEngine:
             next_steps=next_steps,
             estimated_effort="2 hours" if recommendation == "PostgreSQL" else "4 hours",
             impact="HIGH",
+            tool_proposal={
+                "name": "plan",
+                "arguments": {
+                    "goal": f"Set up {recommendation} database infrastructure",
+                    "due": "today"
+                }
+            }
         )
     
     def _generic_tech_decision(
@@ -236,6 +325,7 @@ class StrategicDecisionEngine:
             impact="MEDIUM",
         )
     
+    
     def analyze_architecture_decision(
         self,
         question: str,
@@ -243,20 +333,19 @@ class StrategicDecisionEngine:
     ) -> StrategicRecommendation:
         """
         Analyze architecture decisions (monolith vs microservices, etc.).
-        
-        Considers:
-        - Team size and complexity
-        - Scale requirements
-        - Development speed needs
-        - Operational complexity
+        Hybrid Router: Heuristic (Fast) vs Expert (Smart).
         """
-        question_lower = question.lower()
+        q_lower = question.lower()
         
-        # Monolith vs Microservices
-        if "monolith" in question_lower or "microservice" in question_lower:
+        # Path A: Heuristic (Fast)
+        # "Monolith or Microservices" is the classic question we optimize for.
+        if "monolith" in q_lower or "microservice" in q_lower:
             return self._analyze_monolith_vs_microservices(context)
-        
-        return self._generic_architecture_decision(question, context)
+            
+        # Path B: Hybrid V2 (Smart)
+        # Handles "Event Driven", "Serverless", "Clean Architecture", etc.
+        return self._ask_expert(question, context, DecisionType.ARCHITECTURE)
+
     
     def _analyze_monolith_vs_microservices(
         self,
@@ -331,6 +420,13 @@ class StrategicDecisionEngine:
             next_steps=next_steps,
             estimated_effort="1 week" if recommendation == "Monolith" else "2-3 weeks",
             impact="HIGH",
+            tool_proposal={
+                "name": "plan",
+                "arguments": {
+                    "goal": f"Design {recommendation.lower()} architecture boundaries",
+                    "due": "this week"
+                }
+            }
         )
     
     def _generic_architecture_decision(
@@ -350,6 +446,7 @@ class StrategicDecisionEngine:
             impact="MEDIUM",
         )
     
+    
     def analyze_growth_decision(
         self,
         question: str,
@@ -357,19 +454,21 @@ class StrategicDecisionEngine:
     ) -> StrategicRecommendation:
         """
         Analyze growth and marketing decisions.
-        
-        Considers:
-        - Product type and target audience
-        - Current stage and resources
-        - Channel fit and ROI
+        Hybrid Router: Heuristic (Fast) vs Expert (Smart).
         """
-        question_lower = question.lower()
+        q_lower = question.lower()
         
-        # Channel selection
-        if any(keyword in question_lower for keyword in ["channel", "marketing", "launch", "users"]):
-            return self._analyze_growth_channels(context)
+        # Path A: Heuristic (Fast)
+        # Checks for basic channel selection based on stack.
+        if any(k in q_lower for k in ["channel", "marketing", "launch", "users", "seo", "ads"]):
+             # Our heuristic is good for "Dev Tools" vs "B2C", but limited.
+             # We might want to pass more nuanced growth questions to expert.
+             # For now, we prefer heuristic speed unless it's clearly outside scope.
+             return self._analyze_growth_channels(context)
         
-        return self._generic_growth_decision(question, context)
+        # Path B: Hybrid V2 (Smart)
+        return self._ask_expert(question, context, DecisionType.GROWTH)
+
     
     def _analyze_growth_channels(
         self,
@@ -431,6 +530,13 @@ class StrategicDecisionEngine:
             next_steps=next_steps,
             estimated_effort="2-4 weeks",
             impact="HIGH",
+            tool_proposal={
+                "name": "plan",
+                "arguments": {
+                    "goal": f"Execute growth strategy: {recommendation}",
+                    "due": "next month"
+                }
+            }
         )
     
     def _generic_growth_decision(
@@ -450,6 +556,7 @@ class StrategicDecisionEngine:
             impact="HIGH",
         )
     
+    
     def analyze_fundraising_decision(
         self,
         question: str,
@@ -457,17 +564,22 @@ class StrategicDecisionEngine:
     ) -> StrategicRecommendation:
         """
         Analyze fundraising decisions.
-        
-        Considers:
-        - Current metrics (MRR, growth, runway)
-        - Stage and traction
-        - Market timing
+        Hybrid Router: Heuristic (Fast) vs Expert (Smart).
         """
-        # Simple heuristic for now
-        should_raise = False
-        reasoning = []
+        q_lower = question.lower()
         
-        # Check runway
+        # Path A: Heuristic (Fast)
+        # Good for "Should I raise?" based on metrics.
+        if "raise" in q_lower or "fund" in q_lower or "money" in q_lower or "vc" in q_lower:
+             # Basic runway check is best handled by rigid math.
+             return self._analyze_fundraising_metrics(context) 
+             
+        # Path B: Expert (e.g. "How to pitch?", "Valuation?")
+        return self._ask_expert(question, context, DecisionType.FUNDRAISING)
+        
+    def _analyze_fundraising_metrics(self, context: StrategicContext) -> StrategicRecommendation:
+        """Renamed from original analyze logic to separate Heuristic."""
+
         if context.runway_months < 6:
             should_raise = True
             reasoning.append("🔴 Low runway (< 6 months) → Raise now")
@@ -518,6 +630,13 @@ class StrategicDecisionEngine:
             next_steps=next_steps,
             estimated_effort="3-6 months",
             impact="HIGH",
+            tool_proposal={
+                "name": "plan",
+                "arguments": {
+                    "goal": "Prepare fundraising deck and metrics" if should_raise else "Focus on product deliverables",
+                    "due": "next week"
+                }
+            }
         )
     
     def analyze_prioritization(
@@ -577,39 +696,47 @@ class StrategicDecisionEngine:
         self,
         rec: StrategicRecommendation,
     ) -> str:
-        """Format recommendation for display."""
+        """
+        Format recommendation using the 'Frame Design System' (Hook -> Evidence -> Proposal).
+        This drives the 'Proactive Button' UX.
+        """
         
         confidence_emoji = {
             ConfidenceLevel.VERY_HIGH: "🎯",
-            ConfidenceLevel.HIGH: "✅",
+            ConfidenceLevel.HIGH: "⚡",
             ConfidenceLevel.MEDIUM: "💡",
             ConfidenceLevel.LOW: "⚠️",
         }
         
         output = []
-        output.append(f"{confidence_emoji[rec.confidence]} RECOMMENDATION: {rec.recommendation}")
-        output.append(f"Confidence: {rec.confidence.value.replace('_', ' ').title()} ({rec.confidence.value})")
+        
+        # 1. THE HOOK (Insight)
+        # "🎯 Strategy: Use PostgreSQL"
+        output.append(f"{confidence_emoji[rec.confidence]} **Strategy: {rec.recommendation}**")
         output.append("")
         
-        output.append("WHY:")
-        for reason in rec.reasoning:
-            output.append(f"  {reason}")
+        # 2. THE EVIDENCE (Context)
+        # Bullet points of why
+        output.append("**Why this works:**")
+        for reason in rec.reasoning[:3]: # Keep it tight
+            output.append(f"*   {reason}")
         output.append("")
         
-        if rec.alternatives:
-            output.append("ALTERNATIVES CONSIDERED:")
-            for alt in rec.alternatives:
-                output.append(f"  • {alt['name']} (score: {alt.get('score', 'N/A')})")
-                if "use_case" in alt:
-                    output.append(f"    {alt['use_case']}")
-            output.append("")
-        
-        output.append("NEXT STEPS:")
-        for i, step in enumerate(rec.next_steps, 1):
-            output.append(f"  {i}. {step}")
-        output.append("")
-        
-        output.append(f"⏱️ Estimated Effort: {rec.estimated_effort}")
-        output.append(f"📊 Impact: {rec.impact}")
+        # 3. THE PROPOSAL (The Button)
+        if rec.tool_proposal:
+            tool_name = rec.tool_proposal.get("name")
+            args = rec.tool_proposal.get("arguments", {})
+            
+            # Formatted specifically so the Agent recognizes it as a directive to call the tool
+            output.append(f"> **Side Proposes Action:** `{tool_name}`")
+            output.append(f"> *Run this to execute the strategy immediately.*")
+            
+            # This is the signal for the 'Run' button in the client
+            output.append(f"tool_code: call_tool('{tool_name}', {args})") 
+        else:
+            # Fallback for pure advice
+            output.append("**Next Steps:**")
+            for i, step in enumerate(rec.next_steps[:3], 1):
+                output.append(f"{i}. {step}")
         
         return "\n".join(output)

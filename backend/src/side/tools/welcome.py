@@ -35,7 +35,7 @@ async def handle_welcome(arguments: dict[str, Any]) -> str:
         
         # Ensure Monolith exists
         db = get_database()
-        monolith_path = _generate_monolith_file(db)
+        monolith_path = await _generate_monolith_file(db)
         
         # Get latest health
         # memory = AuditMemory(project_path)
@@ -87,29 +87,28 @@ Say "Side, audit my code" to get your first health score!
     
     # Generate the Monolith
     db = get_database()
-    monolith_path = _generate_monolith_file(db)
+    monolith_path = await _generate_monolith_file(db)
     
     return f"""
-## 👋 Welcome to Side!
+## 👋 Welcome to Sidelith.
 
-I've set up your project and created your **Strategic Monolith**:
+I've initialized the technical context for this project:
 
 **📁 Project**: {result['project_name']}
 **🔧 Stack**: {', '.join(result['stack'])}
-**⬛ Monolith**: `.side/MONOLITH.md`
+**⬛ Context**: `.side/MONOLITH.md`
 
-### The Monolith Paradigm
+### How it works:
 
-Your Monolith is a **machine-sovereign dashboard**. It reflects your project's:
-- Strategic IQ and Grade
-- Active Directives (goals, milestones, tasks)
-- Security Matrix
-- Transparency Log
+Sidelith maintains a persistent state in `MONOLITH.md`. It tracks your:
+- Codebase health and logic flow
+- Active goals and constraints
+- Decision history (to prevent regressions)
 
-> **You cannot edit the Monolith by hand.** To update it, talk to me:
-> - "Side, log a goal: Launch by February"
-> - "Side, I finished the auth feature"
-> - "Side, audit my code"
+> **Don't edit the Monolith manually.** Update it via command:
+> - `lith log goal: Launch by February`
+> - `lith audit`
+> - `lith status`
 
 ---
 *Your Agency is ready. What's your first directive?*

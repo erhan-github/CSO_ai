@@ -16,9 +16,9 @@ class APIContractTracker:
     def __init__(self, db):
         self.db = db
         self.service_domains = {
+            'lemonsqueezy.com': 'Lemon Squeezy',
+            'api.lemonsqueezy.com': 'Lemon Squeezy',
             'supabase.co': 'Supabase',
-            'stripe.com': 'Stripe',
-            'api.stripe.com': 'Stripe',
             'groq.com': 'Groq',
             'api.groq.com': 'Groq',
             'api.openai.com': 'OpenAI',

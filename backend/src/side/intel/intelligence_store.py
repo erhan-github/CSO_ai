@@ -11,6 +11,7 @@ import json
 
 from side.storage.simple_db import SimplifiedDatabase
 from side.intel.forensic_engine import Finding
+from side.forensic_audit.core import AuditSummary, AuditStatus
 
 
 class IntelligenceStore:
@@ -91,6 +92,34 @@ class IntelligenceStore:
             conn.commit()
         
         return stored_count
+
+    def store_audit_summary(self, project_id: str, summary: AuditSummary) -> int:
+        """
+        Store results from ForensicAuditRunner summary.
+        Maps AuditResult -> Finding.
+        """
+        findings = []
+        for dim_results in summary.results_by_dimension.values():
+            for res in dim_results:
+                if res.status in [AuditStatus.FAIL, AuditStatus.WARN]:
+                    # Map AuditResult -> Finding
+                    finding = Finding(
+                        type=res.check_name,
+                        severity=res.severity.value.upper(), # Normalize to UPPERCASE
+                        file=res.evidence[0].file_path if res.evidence and res.evidence[0].file_path else "Project",
+                        line=res.evidence[0].line_number if res.evidence and res.evidence[0].line_number else 0,
+                        message=f"{res.notes}. {res.recommendation or ''}",
+                        action=res.recommendation or "Review finding",
+                        metadata={
+                            'check_id': res.check_id,
+                            'dimension': res.dimension,
+                            'status': res.status.value,
+                            'fix_risk': res.fix_risk.value
+                        }
+                    )
+                    findings.append(finding)
+        
+        return self.store_findings(project_id, findings)
 
     def get_active_findings(self, project_id: str, severity: Optional[str] = None) -> List[dict]:
         """Get all unresolved findings for a project."""

@@ -70,7 +70,7 @@ class Simulator:
         Persona("The Growth Hacker", "Marketing Lead", "Virality, SEO, social proof, gamification", "Hype"),
 
         # --- THE MAKERS (Builders) ---
-        Persona("The Indie Hacker", "Bootstrapper", "Time to market, stripe integration, low overhead", "Maker"),
+        Persona("The Indie Hacker", "Bootstrapper", "Time to market, lemonsqueezy integration, low overhead", "Maker"),
         Persona("The DevOps Ninja", "SRE", "Terraform, Kubernetes, CI/CD pipelines", "Maker"),
         Persona("The Data Scientist", "ML Engineer", "Python, Jupyter, reproducibility, GPU cost", "Maker"),
         Persona("The UX Purist", "Product Designer", "White space, typography, micro-interactions", "Maker"),

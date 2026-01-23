@@ -1,21 +1,25 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 export default function TermsPage() {
     return (
         <div className="min-h-screen bg-black text-zinc-400 font-sans p-8 md:p-24 selection:bg-white/10">
             <div className="max-w-3xl mx-auto">
-                <Link href="/" className="text-white hover:text-zinc-300 transition-colors mb-8 inline-block">
-                    ← Back to CSO.ai
+                <Link href="/" className="mb-6 flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
+                    <ChevronRight className="w-4 h-4 rotate-180" /> Back to sidemcp.com
                 </Link>
 
                 <h1 className="text-4xl font-bold text-white mb-8 tracking-tight">Terms of Service</h1>
 
                 <div className="space-y-6 text-sm leading-relaxed">
-                    <p className="text-zinc-500 font-mono">Last Updated: January 17, 2026</p>
+                    <p className="text-zinc-400 mb-8 italic">
+                        Welcome to Side. By using our platform, you agree to these terms.
+                    </p>
+                    <p>Please read these Terms of Service ("Terms") carefully before using Side.</p>
 
                     <section>
                         <h2 className="text-xl font-semibold text-white mb-3">1. Acceptance of Terms</h2>
-                        <p>By using CSO.ai, you agree to be bound by these terms. If you do not agree, do not use the service. We provide strategic intelligence as-is, with no guarantee of market outcome.</p>
+                        <p>By using sidemcp.com, you agree to be bound by these terms. If you do not agree, do not use the service. We provide strategic intelligence as-is, with no guarantee of market outcome.</p>
                     </section>
 
                     <section>

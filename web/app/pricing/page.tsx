@@ -1,5 +1,6 @@
 import { Check, ChevronRight, Zap, Shield, Brain, Users, Eye, Terminal, Building2 } from "lucide-react";
 import Link from "next/link";
+import { CheckoutButton } from "@/components/dashboard/CheckoutButton";
 
 export default function PricingPage() {
     return (
@@ -7,15 +8,17 @@ export default function PricingPage() {
             {/* Navigation */}
             <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="h-6 w-6 bg-white rounded-sm" />
-                        <span className="font-bold tracking-tight">CSO.ai</span>
+                    <Link href="/" className="flex items-center gap-2 group">
+                        <div className="h-6 w-6 bg-white rounded-sm group-hover:rotate-90 transition-transform duration-500" />
+                        <span className="font-black tracking-tighter text-xl uppercase italic text-white underline decoration-white/20 underline-offset-4">Sidelith</span>
                     </Link>
-                    <div className="flex items-center gap-6 text-sm font-medium text-zinc-400">
-                        <Link href="/#difference" className="hover:text-white transition-colors">Difference</Link>
-                        <Link href="/pricing" className="text-white">Pricing</Link>
-                        <Link href="/login" className="flex items-center gap-2 text-white bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-all">
-                            Get Started <ChevronRight className="w-4 h-4" />
+                    <div className="flex items-center gap-6 text-sm font-medium text-zinc-300">
+                        <Link href="/#forensics" className="hover:text-white transition-colors">Forensics & Strategy</Link>
+                        <Link href="/#caselogs" className="hover:text-white transition-colors">Case Logs</Link>
+                        <Link href="/#install" className="hover:text-white transition-colors">Install</Link>
+                        <Link href="/pricing" className="text-white">Infrastructure</Link>
+                        <Link href="/login" className="flex items-center gap-2 text-white bg-white/10 px-5 py-2 rounded-full hover:bg-white/20 transition-all font-bold border border-white/5 uppercase tracking-widest text-[10px]">
+                            Authenticate <ChevronRight className="w-3 h-3" />
                         </Link>
                     </div>
                 </div>
@@ -25,56 +28,44 @@ export default function PricingPage() {
                 <div className="max-w-6xl mx-auto">
                     {/* Header */}
                     <div className="text-center mb-16">
-                        <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6">
-                            All features free.<br />Pay only for tokens.
+                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter mb-6 uppercase italic">
+                            Infrastructure<br />Level.
                         </h1>
                         <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
-                            Use every feature from day one. Upgrade when you need more capacity.
+                            The System of Record for Project Context. Sidelith is a sovereign layer for your IDE. Free for individuals, tiered for scale.
                         </p>
                     </div>
 
-                    {/* Pricing Cards - 3 tiers */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 items-stretch">
-                        {/* Free - All Features */}
+                    {/* Pricing Cards - 4 tiers */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 items-stretch">
+                        {/* Hobby - Free */}
                         <div className="relative p-8 rounded-3xl border border-white/10 bg-zinc-900/50 flex flex-col hover:border-white/20 transition-colors duration-300">
                             <div className="mb-6">
-                                <h3 className="text-xl font-bold tracking-tight mb-2 text-white">Starter</h3>
-                                <p className="text-zinc-400 text-sm">Try everything, no credit card</p>
+                                <h3 className="text-xl font-bold tracking-tight mb-2 text-white uppercase tracking-widest">Hobby</h3>
+                                <p className="text-zinc-400 text-sm italic">For individuals</p>
                             </div>
                             <div className="mb-6">
                                 <span className="text-5xl font-bold tracking-tighter text-white">$0</span>
-                                <span className="text-zinc-400 font-medium">/forever</span>
+                                <span className="text-zinc-400 font-medium">/mo</span>
                             </div>
-                            <div className="mb-6 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                                <p className="text-green-400 text-sm font-medium flex items-center gap-2">
-                                    <Check className="w-4 h-4" /> 5,000 tokens/month
+                            <div className="mb-6 p-3 rounded-xl bg-zinc-500/10 border border-zinc-500/20">
+                                <p className="text-zinc-400 text-sm font-medium flex items-center gap-2">
+                                    <Check className="w-4 h-4" /> 50 SUs/month
                                 </p>
                             </div>
                             <div className="flex-grow">
                                 <ul className="space-y-3 mb-8 text-sm text-zinc-400">
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">All 5 strategic tools</span>
+                                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                                        <span className="text-zinc-300">Neural Logic Graph</span>
                                     </li>
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Virtual User Lab</span>
+                                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                                        <span className="text-zinc-300">Forensic Audit Logs</span>
                                     </li>
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Codebase X-Ray</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Mission Control (OKRs)</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Infinite memory</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Strategic IQ™</span>
+                                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                                        <span className="text-zinc-300">Local SQLite Registry</span>
                                     </li>
                                 </ul>
                             </div>
@@ -82,98 +73,101 @@ export default function PricingPage() {
                                 href="/login"
                                 className="w-full h-12 rounded-full border border-white/10 flex items-center justify-center font-medium hover:bg-white hover:text-black hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 mt-auto"
                             >
-                                Start Free →
+                                Get Started →
                             </Link>
                         </div>
 
-                        {/* Pro - More Tokens */}
-                        <div className="relative p-8 rounded-3xl border border-white/20 bg-zinc-900/80 flex flex-col hover:border-white/30 transition-colors duration-300 shadow-2xl shadow-blue-900/10">
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-white text-black text-xs font-bold tracking-wider uppercase">
-                                Most Popular
+                        {/* Pro - $20 */}
+                        <div className="relative p-8 rounded-3xl border border-cyan-500/30 bg-zinc-900/80 flex flex-col hover:border-cyan-500/50 transition-colors duration-300 shadow-2xl shadow-cyan-900/10 z-10">
+                            <div className="mb-6">
+                                <h3 className="text-xl font-black tracking-tight mb-2 text-white uppercase tracking-widest italic">Pro</h3>
+                                <p className="text-cyan-400/60 text-sm italic">For professionals</p>
                             </div>
                             <div className="mb-6">
-                                <h3 className="text-xl font-bold tracking-tight mb-2 text-white">Pro</h3>
-                                <p className="text-zinc-400 text-sm">For power users</p>
+                                <span className="text-6xl font-black tracking-tighter text-white">$20</span>
+                                <span className="text-zinc-400 font-medium">/mo</span>
                             </div>
-                            <div className="mb-6">
-                                <span className="text-5xl font-bold tracking-tighter text-white">$20</span>
-                                <span className="text-zinc-400 font-medium">/month</span>
-                            </div>
-                            <div className="mb-6 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                                <p className="text-blue-400 text-sm font-medium flex items-center gap-2">
-                                    <Check className="w-4 h-4" /> 50,000 tokens/month
+                            <div className="mb-6 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                                <p className="text-cyan-400 text-sm font-medium flex items-center gap-2">
+                                    <Check className="w-4 h-4" /> 500 SUs/month
                                 </p>
                             </div>
                             <div className="flex-grow">
-                                <ul className="space-y-3 mb-8 text-sm text-zinc-400">
+                                <ul className="space-y-3 mb-8 text-sm text-zinc-300">
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-white font-medium">Everything in Starter</span>
+                                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                                        <span className="font-bold text-white">Everything in Hobby</span>
                                     </li>
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">10x more tokens</span>
+                                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                                        <span>Architectural Forensics</span>
                                     </li>
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Priority support</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Early access to features</span>
+                                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                                        <span>Continuous Context Sync</span>
                                     </li>
                                 </ul>
                             </div>
-                            <Link
-                                href="/login"
-                                className="w-full h-12 rounded-full bg-white text-black flex items-center justify-center font-bold hover:bg-zinc-200 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 mt-auto"
-                            >
-                                Upgrade to Pro →
-                            </Link>
+                            <CheckoutButton
+                                variantId={process.env.LEMONSQUEEZY_VARIANT_ID_PRO!}
+                                label="UPGRADE"
+                            />
                         </div>
 
-                        {/* Enterprise - Contact Sales */}
-                        <div className="relative p-8 rounded-3xl border border-white/10 bg-zinc-900/50 flex flex-col hover:border-white/20 transition-colors duration-300">
-                            <div className="mb-6">
-                                <h3 className="text-xl font-bold tracking-tight mb-2 flex items-center gap-2 text-white">
-                                    <Building2 className="w-5 h-5" /> Enterprise
-                                </h3>
-                                <p className="text-zinc-400 text-sm">For teams that need more</p>
+                        {/* Elite - $60 */}
+                        <div className="relative p-8 rounded-3xl border border-purple-500/30 bg-zinc-900/80 flex flex-col hover:border-purple-500/50 transition-colors duration-300 shadow-2xl shadow-purple-900/10 scale-105 z-20">
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-purple-500 text-white text-[10px] font-black tracking-[0.2em] uppercase">
+                                Best Value
                             </div>
                             <div className="mb-6">
-                                <span className="text-3xl font-bold tracking-tighter text-white">Custom</span>
+                                <h3 className="text-xl font-black tracking-tight mb-2 text-white uppercase tracking-widest italic flex items-center gap-2">
+                                    Elite <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                </h3>
+                                <p className="text-purple-400/60 text-sm italic">For power users</p>
+                            </div>
+                            <div className="mb-6">
+                                <span className="text-6xl font-black tracking-tighter text-white">$60</span>
+                                <span className="text-zinc-400 font-medium">/mo</span>
                             </div>
                             <div className="mb-6 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
                                 <p className="text-purple-400 text-sm font-medium flex items-center gap-2">
-                                    <Check className="w-4 h-4" /> Unlimited tokens
+                                    <Check className="w-4 h-4" /> 2,500 SUs/month
                                 </p>
                             </div>
                             <div className="flex-grow">
-                                <ul className="space-y-3 mb-8 text-sm text-zinc-400">
+                                <ul className="space-y-3 mb-8 text-sm text-zinc-300">
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-white font-medium">Everything in Pro</span>
+                                        <Check className="w-4 h-4 text-purple-400 shrink-0" />
+                                        <span className="font-bold text-white">Everything in Pro</span>
                                     </li>
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Shared team memory</span>
+                                        <Check className="w-4 h-4 text-purple-400 shrink-0" />
+                                        <span>Context-Engine (RLM)</span>
                                     </li>
                                     <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">SSO/SAML</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Dedicated support</span>
-                                    </li>
-                                    <li className="flex items-center gap-3">
-                                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                                        <span className="text-zinc-300">Custom integrations</span>
+                                        <Check className="w-4 h-4 text-purple-400 shrink-0" />
+                                        <span className="font-bold">Unlimited Projects</span>
                                     </li>
                                 </ul>
                             </div>
+                            <CheckoutButton
+                                variantId={process.env.LEMONSQUEEZY_VARIANT_ID_ELITE!}
+                                label="GO ELITE"
+                                variant="purple"
+                            />
+                        </div>
+
+                        {/* Business - Team */}
+                        <div className="relative p-8 rounded-3xl border border-white/10 bg-zinc-900/50 flex flex-col hover:border-white/20 transition-colors duration-300">
+                            <div className="mb-6">
+                                <h3 className="text-xl font-bold tracking-tight mb-2 flex items-center gap-2 text-white uppercase tracking-widest">Business</h3>
+                                <p className="text-zinc-400 text-sm italic">For organizations</p>
+                            </div>
+                            <div className="mb-12 flex-grow flex items-center justify-center">
+                                <span className="text-4xl font-bold tracking-tighter text-white">Custom</span>
+                            </div>
                             <a
-                                href="mailto:enterprise@cso.ai"
+                                href="mailto:hq@sidelith.com"
                                 className="w-full h-12 rounded-full border border-white/10 flex items-center justify-center font-medium hover:bg-white hover:text-black hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 mt-auto"
                             >
                                 Contact Sales →
@@ -181,33 +175,48 @@ export default function PricingPage() {
                         </div>
                     </div>
 
-                    {/* Key Message */}
-                    <div className="text-center max-w-2xl mx-auto mb-16 p-6 rounded-2xl border border-white/10 bg-zinc-900/30">
-                        <p className="text-lg text-white mb-2">
-                            <strong>Product-first philosophy:</strong>
-                        </p>
-                        <p className="text-zinc-400">
-                            We don&apos;t gate features. Use Virtual User Lab, Codebase X-Ray, and Mission Control from day one.
-                            You&apos;ll upgrade when you need more capacity.
-                        </p>
+                    {/* Add-on Pricing */}
+                    <div className="max-w-4xl mx-auto mb-16 px-8 py-10 rounded-3xl border border-white/10 bg-zinc-900/30 backdrop-blur-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Zap className="w-24 h-24 text-white" />
+                        </div>
+                        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                            <div className="text-center md:text-left">
+                                <h3 className="text-2xl font-black tracking-tighter uppercase italic mb-2">Structural Refills</h3>
+                                <p className="text-zinc-400 text-sm max-w-sm">
+                                    Ran out of throughput mid-sprint? Scale incrementally without changing your phase.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <div className="text-center">
+                                    <div className="text-3xl font-black tracking-tighter text-white font-mono">$10</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Price</div>
+                                </div>
+                                <div className="h-10 w-[1px] bg-white/10" />
+                                <div className="text-center">
+                                    <div className="text-3xl font-black tracking-tighter text-cyan-400 font-mono">250</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Extra SUs</div>
+                                </div>
+                                <CheckoutButton
+                                    variantId={process.env.LEMONSQUEEZY_VARIANT_ID_REFILL!}
+                                    label="REFILL SUs"
+                                    className="ml-4 h-12 px-6"
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Token Refills */}
-                    <div className="text-center mb-16">
-                        <div className="inline-block p-6 rounded-2xl border border-white/10 bg-zinc-900/30">
-                            <p className="text-zinc-400 mb-2">
-                                Need more tokens without subscribing?
-                            </p>
-                            <p className="text-white font-medium">
-                                Buy refills anytime: <strong>$10 for 25,000 tokens</strong>
-                            </p>
-                        </div>
+                    {/* Key Message */}
+                    <div className="text-center max-w-2xl mx-auto mb-16 p-8 rounded-3xl border border-white/10 bg-zinc-900/30">
+                        <p className="text-zinc-400 italic">
+                            "Modern engineering is not about typing. It's about structure. Sidelith provides the stable System of Record required for high-stakes architectural decisions."
+                        </p>
                     </div>
 
                     {/* Footer */}
                     <div className="text-center">
-                        <Link href="/" className="text-zinc-400 hover:text-white transition-colors">
-                            ← Back to Home
+                        <Link href="/" className="text-zinc-500 hover:text-white transition-colors uppercase tracking-[0.2em] text-[10px] font-black">
+                            ← Back to Sidelith
                         </Link>
                     </div>
                 </div>

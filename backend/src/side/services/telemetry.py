@@ -55,34 +55,31 @@ class TelemetryService:
                 await asyncio.sleep(600) # Wait 10 mins on error
 
     async def send_heartbeat(self) -> None:
-        """Send an anonymous pulse to Supabase."""
+        """Send an anonymous pulse to Supabase & PostHog."""
         payload = {
             "project_hash": self.project_hash,
             "os": platform.system(),
             "os_release": platform.release(),
             "python_version": sys.version.split()[0],
-            "app_version": "0.1.0", # Hardcoded for now
+            "app_version": "0.1.0", 
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        try:
-            # Table 'heartbeats' must exist in Supabase
-            self.client.table("heartbeats").insert(payload).execute()
-            logger.debug("Telemetry heartbeat sent.")
-        except Exception as e:
-            logger.error(f"Failed to send heartbeat: {e}")
+        # 1. Supabase (Legacy/Backup)
+        if self.client:
+            try:
+                self.client.table("heartbeats").insert(payload).execute()
+            except Exception as e:
+                logger.debug(f"Supabase heartbeat failed: {e}")
+
+        # 2. PostHog (Investor Metrics)
+        await self._send_to_posthog("heartbeat", payload)
+        logger.debug("Telemetry heartbeat sent.")
 
     async def report_error(self, error_type: str, context: str) -> None:
-        """
-        Manually report an error type (anonymous).
-        """
-        if not self.client:
-            return
-
+        """Report anonymous error."""
         import re
-        # Scrub file paths (e.g. /Users/name/...) to prevent PII leak
         scrubbed_context = re.sub(r'/[Uu]sers/[^/]+/', '/USER/', context)
-        # Scrub potential env var leaks
         scrubbed_context = re.sub(r'(?i)(key|token|secret|password)[=" \']+[^\s]+', r'\1=[REDACTED]', scrubbed_context)
 
         payload = {
@@ -92,7 +89,35 @@ class TelemetryService:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
+        # 1. Supabase
+        if self.client:
+            try:
+                self.client.table("error_logs").insert(payload).execute()
+            except Exception:
+                pass 
+        
+        # 2. PostHog
+        await self._send_to_posthog("error", payload)
+
+    async def _send_to_posthog(self, event: str, properties: Dict[str, Any]) -> None:
+        """Send event to PostHog via HTTP (No SDK dependency to keep binary small)."""
+        ph_key = os.environ.get("POSTHOG_API_KEY")
+        if not ph_key: return
+
+        import aiohttp
         try:
-            self.client.table("error_logs").insert(payload).execute()
+            async with aiohttp.ClientSession() as session:
+                await session.post(
+                    "https://app.posthog.com/capture/",
+                    json={
+                        "api_key": ph_key,
+                        "event": event,
+                        "distinct_id": self.project_hash,
+                        "properties": properties,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    },
+                    timeout=2
+                )
         except Exception:
-            pass # Never crash on telemetry failure
+            pass # Fail silently
+

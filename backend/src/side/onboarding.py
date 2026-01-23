@@ -114,7 +114,8 @@ def create_side_directory(project_root: Path) -> Path:
 def create_plan_md(
     project_root: Path,
     baseline_score: int = 0,
-    health_checks: Optional[list[str]] = None
+    health_checks: Optional[list[str]] = None,
+    findings_summary: str = ""
 ) -> Path:
     """Create .side/plan.md with project info."""
     side_dir = create_side_directory(project_root)
@@ -123,8 +124,8 @@ def create_plan_md(
     project_name = detect_project_name(project_root)
     stack = detect_stack(project_root)
     
-    # Default health checks
-    if health_checks is None:
+    # Default health checks if none provided
+    if not health_checks:
         health_checks = [
             "- [ ] Security Score > 80%",
             "- [ ] No hardcoded secrets",
@@ -140,28 +141,84 @@ def create_plan_md(
         baseline_score=baseline_score,
     )
     
+    if findings_summary:
+        content += f"\n## First Diagnostic Findings\n{findings_summary}\n"
+        
     plan_path.write_text(content)
     return plan_path
 
 
-def run_onboarding(project_root: str) -> dict:
+async def run_onboarding(project_root: str) -> dict:
     """
-    Run the Day 1 onboarding flow.
+    Run the Day 1 onboarding flow with a LIVE Baseline Audit.
     
     Returns dict with onboarding results.
     """
+    from side.intel.forensic_engine import ForensicEngine
+    from side.intel.evaluator import StrategicEvaluator
+    from side.intel.auto_intelligence import AutoIntelligence
+    
     root = Path(project_root)
     
-    # 1. Create .side directory and plan.md
-    plan_path = create_plan_md(root)
+    # 1. Run Baseline Scan
+    engine = ForensicEngine(project_root)
+    findings = await engine.scan()
     
-    # 2. Return results
+    # 2. Get Auto-Intelligence Profile
+    auto_intel = AutoIntelligence()
+    profile = await auto_intel.get_or_create_profile(project_root)
+    
+    # [Anti-Abuse] Claim Trial (Repo Lock)
+    from side.services.billing import BillingService
+    from side.tools.core import get_database
+    billing = BillingService(get_database())
+    billing.claim_trial(project_root)
+    
+    # 3. Calculate Strategic IQ (10 Dimensions, 400 points)
+    # Prepare audit summary from findings
+    audit_summary = {}
+    for f in findings:
+        audit_summary[f.severity] = audit_summary.get(f.severity, 0) + 1
+        
+    iq_result = StrategicEvaluator.calculate_iq(
+        profile=profile.to_dict(),
+        active_plans=[], # No plans yet
+        audit_summary=audit_summary,
+        project_root=root
+    )
+    
+    iq_score = iq_result["score"]
+    max_iq = iq_result["max_score"]
+    
+    # 4. Format findings for plan.md
+    findings_summary = ""
+    for f in findings[:5]: # Top 5 findings
+        severity_emoji = {
+            "CRITICAL": "🔴",
+            "HIGH": "🟠",
+            "MEDIUM": "🟡",
+            "LOW": "⚪"
+        }.get(f.severity, "⚪")
+        findings_summary += f"{severity_emoji} **{f.type}**: {f.message}\n"
+
+    # 5. Create .side directory and plan.md
+    plan_path = create_plan_md(
+        root, 
+        baseline_score=int((iq_score / max_iq) * 100), 
+        findings_summary=findings_summary
+    )
+    
+    # 6. Return results
     return {
         "success": True,
         "plan_path": str(plan_path),
         "project_name": detect_project_name(root),
         "stack": detect_stack(root),
-        "message": f"✅ Side is ready! Your plan is at .side/plan.md",
+        "iq_score": iq_score,
+        "max_iq": max_iq,
+        "grade": iq_result["grade"],
+        "findings_count": len(findings),
+        "message": f"✅ Live Diagnostic Complete! Strategic IQ: {iq_result['grade']} ({iq_score}/{max_iq}).\nYour plan is at .side/plan.md",
     }
 
 

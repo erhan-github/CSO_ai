@@ -38,7 +38,7 @@ class ProactiveService:
         OSS_MAP = {
             "notification": "Novu / SuprSend",
             "auth": "Supabase Auth / Clerk / Kinde",
-            "billing": "Stripe / Lago / Kill Bill",
+            "billing": "Lemon Squeezy / Lago / Kill Bill",
             "audit": "sideMCP (Self-Referential Mastery)",
             "analytics": "PostHog / Umami",
             "job": "Temporal / BullMQ",
