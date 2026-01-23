@@ -10,8 +10,15 @@ if (typeof window !== 'undefined') {
         posthog.init(api_key, {
             api_host: host,
             person_profiles: 'identified_only',
-            capture_pageview: false // Handled manually or via router
+            capture_pageview: false
         })
+
+        if (typeof window !== 'undefined') {
+            posthog.register({
+                app: 'sidelith',
+                env: process.env.NODE_ENV
+            })
+        }
     }
 }
 

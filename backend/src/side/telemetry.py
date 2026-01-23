@@ -42,8 +42,9 @@ def telemetry(event_name: str):
                 
                 ph_client.capture(
                     context_id,
-                    f"tool_{event_name}_success",
+                    f"side_tool_{event_name}_success",
                     {
+                        "app": "sidelith",
                         "duration_sec": duration,
                         "tool": func.__name__,
                         "status": "success"
@@ -54,8 +55,9 @@ def telemetry(event_name: str):
                 duration = time.time() - start_time
                 ph_client.capture(
                     context_id,
-                    f"tool_{event_name}_failure",
+                    f"side_tool_{event_name}_failure",
                     {
+                        "app": "sidelith",
                         "duration_sec": duration,
                         "tool": func.__name__,
                         "status": "failure",
