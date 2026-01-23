@@ -41,6 +41,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sidelith.com"),
 };
 
+import { CSPostHogProvider } from "./providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -51,7 +53,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <CSPostHogProvider>
+          {children}
+        </CSPostHogProvider>
       </body>
     </html>
   );

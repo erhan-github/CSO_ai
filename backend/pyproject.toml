@@ -43,6 +43,8 @@ dependencies = [
     "feedparser>=6.0.11",
     "sqlmodel>=0.0.14",
     "supabase>=2.4.0",
+    "sentry-sdk[fastapi]>=2.0.0",
+    "posthog-python>=3.5.0",
 ]
 
 [project.optional-dependencies]

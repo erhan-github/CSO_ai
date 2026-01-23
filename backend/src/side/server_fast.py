@@ -23,6 +23,7 @@ except ImportError:
 from side.intel.forensic_engine import ForensicEngine
 from side.intel.intelligence_store import IntelligenceStore
 from side.logging_config import setup_logging
+from side.telemetry import telemetry
 
 # [DATABASE REF: SQLModel Migration]
 from side.storage.database import get_session, Project, Activity, Finding
@@ -65,6 +66,7 @@ except Exception as e:
 # -----------------------------------------------------------------------------
 
 @mcp.tool()
+@telemetry("get_strategic_alerts")
 async def get_strategic_alerts(severity: str = None, rescan: bool = False) -> str:
     """Get active strategic alerts (security gaps, architectural bloat, stale docs)."""
     if rescan:
@@ -107,6 +109,7 @@ async def resolve_finding(finding_id: str) -> str:
 
 
 @mcp.tool()
+@telemetry("scan_project")
 async def scan_project() -> str:
     """Run a full forensic scan."""
     findings = await forensic_engine.scan()
