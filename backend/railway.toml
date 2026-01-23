@@ -1,6 +1,6 @@
 [build]
-builder = "docker"
-dockerfile = "Dockerfile"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 startCommand = "python run_server.py"
