@@ -11,6 +11,10 @@ if src_path not in sys.path:
 from side.server_fast import mcp
 
 if __name__ == "__main__":
+    # Get deployment configuration
+    port = int(os.getenv("PORT", 8000))
+    transport = os.getenv("MCP_TRANSPORT", "stdio")
+    
     # [SCENARIO 77] Force SSE on Railway to ensure port binding
     is_railway = any(os.getenv(k) for k in ["RAILWAY_ENVIRONMENT_NAME", "RAILWAY_STATIC_URL", "RAILWAY_PUBLIC_DOMAIN"])
     
