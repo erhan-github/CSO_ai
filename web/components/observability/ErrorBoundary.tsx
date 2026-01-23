@@ -23,7 +23,11 @@ export class StrategicErrorBoundary extends React.Component<ErrorBoundaryProps, 
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        Sentry.captureException(error, { extra: errorInfo });
+        Sentry.captureException(error, {
+            extra: {
+                componentStack: errorInfo.componentStack,
+            },
+        });
     }
 
     render() {
