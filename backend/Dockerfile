@@ -38,7 +38,6 @@ COPY run_server.py .
 
 # Environment Variables
 ENV PYTHONPATH=/app/src
-ENV PORT=8000
 
 # Non-root user
 RUN useradd -m sideuser && chown -R sideuser:sideuser /app
