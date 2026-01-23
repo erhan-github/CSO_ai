@@ -1,6 +1,0 @@
-# Minimal Railway config for Next.js
-[build]
-builder = "nixpacks"
-
-[deploy]
-startCommand = "npm start"
